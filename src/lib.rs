@@ -150,10 +150,9 @@ impl Error {
         self
     }
 
-    /// Converts all error kinds into a `GenericError`. Clones the string if
-    /// `self` is already a `GenericError`, uses `format!("{self:?}")`
-    /// otherwise. If `extra` is nonempty, also prefixes the error string with
-    /// it. Adds `track_caller` location to the stack
+    /// Use `MapAddErr` instead of this if anything expensive in creating the
+    /// error is involved, because `map_add_err` uses a closure analogous to
+    /// `ok_or_else`.
     #[track_caller]
     pub fn add_err<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
         self.0.error_stack.push(kind.into());
