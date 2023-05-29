@@ -67,8 +67,7 @@ pub enum ErrorKind {
 /// This is boxed inside an `Error` to make sure that all function signatures
 /// involving it aren't inflated. See `Error` for helper functions.
 pub struct ErrorInner {
-    pub error_stack: Vec<ErrorKind>,
-    pub location_stack: Vec<&'static Location<'static>>,
+    pub stack: Vec<(ErrorKind, Option<&'static Location<'static>>)>,
 }
 
 /// An experimental error struct that has an internal stack for different kinds
@@ -79,18 +78,17 @@ pub struct ErrorInner {
 ///
 /// Import the `MapAddError` trait and use `.map_add_err` instead of `map_err`
 /// or other such functions.
+///
+/// Use at least `.map_add_err(|| ())` before every time an error is propogated
+/// up the stack to make sure the location stack is filled.
 pub struct Error(pub ErrorInner);
 
 impl Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // in reverse order of a typical stack, I don't want to have to scroll up to see
         // the more specific errors
-        f.write_fmt(format_args!("Error {{ location_stack: [\n"))?;
-        for location in self.0.location_stack.iter().rev() {
-            f.write_fmt(format_args!("{location:?},\n"))?;
-        }
-        f.write_fmt(format_args!("], error_stack: [\n"))?;
-        for (i, error) in self.0.error_stack.iter().enumerate().rev() {
+        f.write_fmt(format_args!("Error {{ stack: [\n"))?;
+        for (i, (error, location)) in self.0.stack.iter().enumerate().rev() {
             match error {
                 ErrorKind::UnitError => (),
                 ErrorKind::StrError(s) => {
@@ -111,6 +109,9 @@ impl Debug for Error {
                     f.write_fmt(format_args!("{error:?},\n"))?;
                 }
             }
+            if let Some(location) = location {
+                f.write_fmt(format_args!("{location:?},\n"))?;
+            }
         }
         f.write_fmt(format_args!("] }}"))
     }
@@ -122,8 +123,7 @@ impl Error {
     pub fn from_kind<K: Into<ErrorKind>>(kind: K) -> Self {
         let l = Location::caller();
         Self(ErrorInner {
-            error_stack: vec![kind.into()],
-            location_stack: vec![l],
+            stack: vec![(kind.into(), Some(l))],
         })
     }
 
@@ -143,34 +143,32 @@ impl Error {
     }
 
     /// The same as [Error::add_err] but without pushing location to stack
-    #[track_caller]
     pub fn add_err_no_location<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
-        self.0.error_stack.push(kind.into());
-        self.0.location_stack.push(Location::caller());
+        self.0.stack.push((kind.into(), None));
         self
     }
 
-    /// Converts all error kinds into a `GenericError`. Clones the string if
-    /// `self` is already a `GenericError`, uses `format!("{self:?}")`
-    /// otherwise. If `extra` is nonempty, also prefixes the error string with
-    /// it. Adds `track_caller` location to the stack
+    /// Use `MapAddErr` instead of this if anything expensive in creating the
+    /// error is involved, because `map_add_err` uses a closure analogous to
+    /// `ok_or_else`.
     #[track_caller]
     pub fn add_err<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
-        self.0.error_stack.push(kind.into());
-        self.0.location_stack.push(Location::caller());
+        self.0.stack.push((kind.into(), Some(Location::caller())));
         self
     }
 
     /// Only adds `track_caller` location to the stack
     #[track_caller]
     pub fn add_location(mut self) -> Self {
-        self.0.location_stack.push(Location::caller());
+        self.0
+            .stack
+            .push((ErrorKind::UnitError, Some(Location::caller())));
         self
     }
 
     /// Returns if a `TimeoutError` is in the error stack
     pub fn is_timeout(&self) -> bool {
-        for error in &self.0.error_stack {
+        for (error, _) in &self.0.stack {
             if matches!(error, ErrorKind::TimeoutError) {
                 return true
             }
@@ -180,8 +178,7 @@ impl Error {
 
     /// Chains the stacks of `other` onto `self`
     pub fn chain_errors(mut self, mut other: Self) -> Self {
-        self.0.error_stack.append(&mut other.0.error_stack);
-        self.0.location_stack.append(&mut other.0.location_stack);
+        self.0.stack.append(&mut other.0.stack);
         self
     }
 }
