@@ -1,5 +1,6 @@
-// https://github.com/dtolnay/thiserror/issues/142
-
+/// This is a very WIP experimental errors crate.
+/// Note: you should probably use `default-features = false` in your
+/// `Cargo.toml`
 use std::{
     fmt::{self, Debug},
     panic::Location,
@@ -65,7 +66,7 @@ pub enum ErrorKind {
 
 /// An experimental error struct that has an internal stack for different kinds
 /// of errors and a stack for locations. This is a replacement for the bad
-/// information you get from backtraces within `tokio` tasks.
+/// information you get from backtraces within `async` tasks.
 ///
 /// # Note
 ///

@@ -2,6 +2,7 @@
 name = "stacked_errors"
 version = "0.1.0"
 edition = "2021"
+# change the test suite version when changing this
 rust-version = "1.69"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
