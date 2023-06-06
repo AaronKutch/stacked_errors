@@ -65,6 +65,9 @@ pub enum ErrorKind {
     #[cfg(feature = "reqwest_support")]
     #[error("ReqwestError")]
     ReqwestError(reqwest::Error),
+    #[cfg(feature = "hyper_support")]
+    #[error("HyperError")]
+    HyperError(hyper::Error),
 }
 
 /// This is boxed inside an `Error` to make sure that all function signatures
@@ -342,6 +345,10 @@ x!(SerdeYamlError X16);
 type X17 = reqwest::Error;
 #[cfg(feature = "reqwest_support")]
 x!(ReqwestError X17);
+#[cfg(feature = "hyper_support")]
+type X18 = hyper::Error;
+#[cfg(feature = "hyper_support")]
+x!(HyperError X18);
 
 /*
 type X = ;
