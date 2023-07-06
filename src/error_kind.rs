@@ -15,23 +15,23 @@ pub enum ErrorKind {
     #[error("StrError")]
     StrError(&'static str),
     #[error("StringError")]
-    StringError(String),
+    StringError(alloc::string::String),
     #[error("BoxedError")]
-    BoxedError(Box<dyn std::error::Error + Send + Sync>),
+    BoxedError(alloc::boxed::Box<dyn std::error::Error + Send + Sync>),
     #[error("TryFromIntError")]
-    TryFromIntError(std::num::TryFromIntError),
+    TryFromIntError(core::num::TryFromIntError),
     #[error("StdIoError")]
     StdIoError(std::io::Error),
     #[error("FromUtf8Error")]
-    FromUtf8Error(std::string::FromUtf8Error),
+    FromUtf8Error(alloc::string::FromUtf8Error),
     // this is more obscure but I think we should keep it because it deals with bad strings, and
     // we don't want that in our generic string errors.
     #[error("FromUtf16Error")]
-    FromUtf16Error(std::string::FromUtf16Error),
+    FromUtf16Error(alloc::string::FromUtf16Error),
     #[error("ParseIntError")]
-    ParseIntError(std::num::ParseIntError),
+    ParseIntError(core::num::ParseIntError),
     #[error("ParseFloatError")]
-    ParseFloatError(std::num::ParseFloatError),
+    ParseFloatError(core::num::ParseFloatError),
     #[cfg(feature = "tokio_rt_support")]
     #[error("TokioJoinError")]
     TokioJoinError(tokio::task::JoinError),

@@ -1,3 +1,8 @@
+// TODO when https://github.com/rust-lang/rust/issues/103765 is stabilized
+// we can make a large subset as no_std
+//#![no_std]
+
+extern crate alloc;
 mod error;
 /// This is an experimental errors crate.
 /// Note: you should probably use `default-features = false` in your
@@ -8,7 +13,7 @@ pub use error::Error;
 pub use error_kind::ErrorKind;
 pub use map_add_err::MapAddError;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 macro_rules! unit_x {
     ($kind:ident $x:ty) => {
@@ -48,13 +53,13 @@ type X0 = ();
 unit_x!(UnitError X0);
 type X1 = &'static str;
 x!(StrError X1);
-type X2 = String;
+type X2 = alloc::string::String;
 x!(StringError X2);
 type X3 = std::io::Error;
 x!(StdIoError X3);
-type X4 = std::string::FromUtf8Error;
+type X4 = alloc::string::FromUtf8Error;
 x!(FromUtf8Error X4);
-type X5 = std::string::FromUtf16Error;
+type X5 = alloc::string::FromUtf16Error;
 x!(FromUtf16Error X5);
 #[cfg(feature = "tokio_rt_support")]
 type X6 = tokio::task::JoinError;
@@ -72,13 +77,13 @@ x!(RonError X8);
 type X9 = ctrlc::Error;
 #[cfg(feature = "ctrlc_support")]
 x!(CtrlcError X9);
-type X10 = std::num::ParseIntError;
+type X10 = core::num::ParseIntError;
 x!(ParseIntError X10);
-type X11 = std::num::ParseFloatError;
+type X11 = core::num::ParseFloatError;
 x!(ParseFloatError X11);
-type X12 = std::num::TryFromIntError;
+type X12 = core::num::TryFromIntError;
 x!(TryFromIntError X12);
-type X13 = Box<dyn std::error::Error + Send + Sync>;
+type X13 = alloc::boxed::Box<dyn std::error::Error + Send + Sync>;
 x!(BoxedError X13);
 #[cfg(feature = "toml_support")]
 type X14 = toml::de::Error;
