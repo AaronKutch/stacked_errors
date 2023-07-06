@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::{fmt, fmt::Debug, panic::Location};
 
 use thin_vec::{thin_vec, ThinVec};
@@ -84,7 +85,7 @@ impl Error {
     /// Error::boxed(Box::new(e) as Box<dyn std::error::Error>)).map_add_err(||
     /// "more info and a location")?`.
     #[track_caller]
-    pub fn boxed(e: alloc::boxed::Box<dyn std::error::Error + Send + Sync>) -> Self {
+    pub fn boxed(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Self::from_kind(ErrorKind::BoxedError(e))
     }
 

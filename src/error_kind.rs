@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 /// In the future we plan on having almost every kind of error here under
 /// different feature gates. Please file an issue if you would like to include
 /// something.
@@ -17,7 +19,7 @@ pub enum ErrorKind {
     #[error("StringError")]
     StringError(alloc::string::String),
     #[error("BoxedError")]
-    BoxedError(alloc::boxed::Box<dyn std::error::Error + Send + Sync>),
+    BoxedError(Box<dyn std::error::Error + Send + Sync>),
     #[error("TryFromIntError")]
     TryFromIntError(core::num::TryFromIntError),
     #[error("StdIoError")]
@@ -38,7 +40,7 @@ pub enum ErrorKind {
     // Borsh effecively uses `std::io::Error`
     #[cfg(feature = "ron_support")]
     #[error("RonError")]
-    RonError(ron::error::Error),
+    RonError(Box<ron::error::Error>), // box to reduce ErrorKind size
     #[cfg(feature = "serde_json_support")]
     #[error("SerdeJsonError")]
     SerdeJsonError(serde_json::Error),
@@ -47,10 +49,10 @@ pub enum ErrorKind {
     CtrlcError(ctrlc::Error),
     #[cfg(feature = "toml_support")]
     #[error("TomlDeError")]
-    TomlDeError(toml::de::Error),
+    TomlDeError(Box<toml::de::Error>), // box
     #[cfg(feature = "toml_support")]
     #[error("TomlSerError")]
-    TomlSerError(toml::ser::Error),
+    TomlSerError(Box<toml::ser::Error>), // box
     #[cfg(feature = "serde_yaml_support")]
     #[error("SerdeYamlError")]
     SerdeYamlError(serde_yaml::Error),
