@@ -25,7 +25,7 @@ pub enum ErrorKind {
     #[error("StringError")]
     StringError(String),
     #[error("BoxedError")]
-    BoxedError(Box<dyn std::error::Error>),
+    BoxedError(Box<dyn std::error::Error + Send + Sync>),
     #[error("TryFromIntError")]
     TryFromIntError(std::num::TryFromIntError),
     #[error("StdIoError")]
@@ -144,7 +144,7 @@ impl Error {
     /// Error::boxed(Box::new(e) as Box<dyn std::error::Error>)).map_add_err(||
     /// "more info and a location")?`.
     #[track_caller]
-    pub fn boxed(e: Box<dyn std::error::Error>) -> Self {
+    pub fn boxed(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Self::from_kind(ErrorKind::BoxedError(e))
     }
 
@@ -327,7 +327,7 @@ type X11 = std::num::ParseFloatError;
 x!(ParseFloatError X11);
 type X12 = std::num::TryFromIntError;
 x!(TryFromIntError X12);
-type X13 = Box<dyn std::error::Error>;
+type X13 = Box<dyn std::error::Error + Send + Sync>;
 x!(BoxedError X13);
 #[cfg(feature = "toml_support")]
 type X14 = toml::de::Error;
