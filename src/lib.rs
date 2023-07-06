@@ -6,6 +6,8 @@ use std::{
     panic::Location,
 };
 
+use thin_vec::{thin_vec, ThinVec};
+
 /// In the future we plan on having almost every kind of error here under
 /// different feature gates. Please file an issue if you would like to include
 /// something.
@@ -73,7 +75,7 @@ pub enum ErrorKind {
 /// This is boxed inside an `Error` to make sure that all function signatures
 /// involving it aren't inflated. See `Error` for helper functions.
 pub struct ErrorInner {
-    pub stack: Vec<(ErrorKind, Option<&'static Location<'static>>)>,
+    pub stack: ThinVec<(ErrorKind, Option<&'static Location<'static>>)>,
 }
 
 /// An experimental error struct that has an internal stack for different kinds
@@ -129,7 +131,7 @@ impl Error {
     pub fn from_kind<K: Into<ErrorKind>>(kind: K) -> Self {
         let l = Location::caller();
         Self(ErrorInner {
-            stack: vec![(kind.into(), Some(l))],
+            stack: thin_vec![(kind.into(), Some(l))],
         })
     }
 
