@@ -7,6 +7,13 @@ use alloc::boxed::Box;
 /// The intention with `TimeoutError` is that if it is in the error stack, a
 /// timeout occured. When other timeout structs are used, this should be added
 /// on.
+///
+/// `ProbablyNotRootCauseError` is used to signal that the error is probably not
+/// the "root cause". This is used by the `super_orchestrator` crate to reduce
+/// noise when one error triggers a cascade of errors in a network.
+///
+/// Some things besides `BoxedError` are boxed to reduce the overall size of
+/// `ErrorKind`
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorKind {
     // used for special cases where we need something
@@ -14,6 +21,8 @@ pub enum ErrorKind {
     UnitError,
     #[error("TimeoutError")]
     TimeoutError,
+    #[error("ProbablyNotRootCauseError")]
+    ProbablyNotRootCauseError,
     #[error("StrError")]
     StrError(&'static str),
     #[error("StringError")]
@@ -40,7 +49,7 @@ pub enum ErrorKind {
     // Borsh effecively uses `std::io::Error`
     #[cfg(feature = "ron_support")]
     #[error("RonError")]
-    RonError(Box<ron::error::Error>), // box to reduce ErrorKind size
+    RonError(Box<ron::error::Error>), // box
     #[cfg(feature = "serde_json_support")]
     #[error("SerdeJsonError")]
     SerdeJsonError(serde_json::Error),

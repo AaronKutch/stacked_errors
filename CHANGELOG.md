@@ -6,6 +6,7 @@
  - Used `ThinVec` to reduce the size of `Result<(), Error>` to be the same as `usize`
  - Refactored the public internals of `Error`
  - Used strategic boxing of a few outliers to reduce size of `ErrorKind`
+ - Added `ProbablyNotRootCauseError`
 
 ## [0.2.0] - 06-06-2023
 ### Additions

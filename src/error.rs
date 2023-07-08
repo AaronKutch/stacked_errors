@@ -29,6 +29,9 @@ impl Debug for Error {
         // the more specific errors
         f.write_fmt(format_args!("Error {{ stack: [\n"))?;
         for (i, (error, location)) in self.stack.iter().enumerate().rev() {
+            if let Some(location) = location {
+                f.write_fmt(format_args!("{location:?},\n"))?;
+            }
             match error {
                 ErrorKind::UnitError => (),
                 ErrorKind::StrError(s) => {
@@ -48,9 +51,6 @@ impl Debug for Error {
                 _ => {
                     f.write_fmt(format_args!("{error:?},\n"))?;
                 }
-            }
-            if let Some(location) = location {
-                f.write_fmt(format_args!("{location:?},\n"))?;
             }
         }
         f.write_fmt(format_args!("] }}"))
@@ -74,10 +74,16 @@ impl Error {
         }
     }
 
-    /// Returns a base timeout error
+    /// Returns a base `TimeoutError` error
     #[track_caller]
     pub fn timeout() -> Self {
         Self::from_kind(ErrorKind::TimeoutError)
+    }
+
+    /// Returns a base `ProbablyNotRootCauseError` error
+    #[track_caller]
+    pub fn probably_not_root_cause() -> Self {
+        Self::from_kind(ErrorKind::ProbablyNotRootCauseError)
     }
 
     /// Can handle anything implementing `std::error::Error`. Most often called
@@ -116,6 +122,16 @@ impl Error {
     pub fn is_timeout(&self) -> bool {
         for (error, _) in &self.stack {
             if matches!(error, ErrorKind::TimeoutError) {
+                return true
+            }
+        }
+        false
+    }
+
+    /// Returns if a `ProbablyNotRootCauseError` is in the error stack
+    pub fn is_probably_not_root_cause(&self) -> bool {
+        for (error, _) in &self.stack {
+            if matches!(error, ErrorKind::ProbablyNotRootCauseError) {
                 return true
             }
         }
