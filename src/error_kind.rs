@@ -72,3 +72,9 @@ pub enum ErrorKind {
     #[error("HyperError")]
     HyperError(hyper::Error),
 }
+
+impl Default for ErrorKind {
+    fn default() -> Self {
+        Self::UnitError
+    }
+}

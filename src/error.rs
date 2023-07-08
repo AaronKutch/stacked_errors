@@ -28,25 +28,17 @@ impl Debug for Error {
         // in reverse order of a typical stack, I don't want to have to scroll up to see
         // the more specific errors
         f.write_fmt(format_args!("Error {{ stack: [\n"))?;
-        for (i, (error, location)) in self.stack.iter().enumerate().rev() {
+        for (error, location) in self.stack.iter().rev() {
             if let Some(location) = location {
                 f.write_fmt(format_args!("{location:?},\n"))?;
             }
             match error {
                 ErrorKind::UnitError => (),
                 ErrorKind::StrError(s) => {
-                    if i == 0 {
-                        f.write_fmt(format_args!("{s}\n"))?;
-                    } else {
-                        f.write_fmt(format_args!("{s} ->\n"))?;
-                    }
+                    f.write_fmt(format_args!("{s}\n"))?;
                 }
                 ErrorKind::StringError(s) => {
-                    if i == 0 {
-                        f.write_fmt(format_args!("{s}\n"))?;
-                    } else {
-                        f.write_fmt(format_args!("{s} ->\n"))?;
-                    }
+                    f.write_fmt(format_args!("{s}\n"))?;
                 }
                 _ => {
                     f.write_fmt(format_args!("{error:?},\n"))?;
@@ -63,6 +55,12 @@ impl Error {
         Self {
             stack: ThinVec::new(),
         }
+    }
+
+    /// Returns an error stack with just a `UnitError` and location information
+    #[track_caller]
+    pub fn new() -> Self {
+        Self::from_kind(ErrorKind::UnitError)
     }
 
     /// Use `MapAddErr` instead of this
@@ -142,5 +140,12 @@ impl Error {
     pub fn chain_errors(mut self, mut other: Self) -> Self {
         self.stack.append(&mut other.stack);
         self
+    }
+}
+
+impl Default for Error {
+    #[track_caller]
+    fn default() -> Self {
+        Error::new()
     }
 }
