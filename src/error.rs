@@ -1,5 +1,5 @@
 use alloc::boxed::Box;
-use core::{fmt, fmt::Debug, panic::Location};
+use core::panic::Location;
 
 use thin_vec::{thin_vec, ThinVec};
 
@@ -21,32 +21,6 @@ pub struct Error {
     // indirection vs. other methods, and having the niche optimizations applied to `Result<(),
     // Error>` and others.
     pub stack: ThinVec<(ErrorKind, Option<&'static Location<'static>>)>,
-}
-
-impl Debug for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // in reverse order of a typical stack, I don't want to have to scroll up to see
-        // the more specific errors
-        f.write_fmt(format_args!("Error {{ stack: [\n"))?;
-        for (error, location) in self.stack.iter().rev() {
-            if let Some(location) = location {
-                f.write_fmt(format_args!("{location:?},\n"))?;
-            }
-            match error {
-                ErrorKind::UnitError => (),
-                ErrorKind::StrError(s) => {
-                    f.write_fmt(format_args!("{s}\n"))?;
-                }
-                ErrorKind::StringError(s) => {
-                    f.write_fmt(format_args!("{s}\n"))?;
-                }
-                _ => {
-                    f.write_fmt(format_args!("{error:?},\n"))?;
-                }
-            }
-        }
-        f.write_fmt(format_args!("] }}"))
-    }
 }
 
 impl Error {

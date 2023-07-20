@@ -10,9 +10,11 @@ mod error;
 mod error_kind;
 mod map_add_err;
 use alloc::boxed::Box;
+mod fmt;
 
 pub use error::Error;
 pub use error_kind::ErrorKind;
+pub use fmt::{DisplayShortLocation, DisplayStr};
 pub use map_add_err::MapAddError;
 
 pub type Result<T> = core::result::Result<T, Error>;
