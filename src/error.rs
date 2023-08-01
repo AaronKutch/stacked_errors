@@ -15,6 +15,17 @@ pub struct Error {
     pub stack: ThinVec<(ErrorKind, Option<&'static Location<'static>>)>,
 }
 
+/// Due to trait conflicts and not wanting users to accidentally embed
+/// `crate::Error` in a `BoxedErr` of another `crate::Error`, `crate::Error`
+/// itself does not actually implement `std::error::Error`. This does not pose a
+/// problem in most cases, since `main` functions can return `Return<T, Error>`.
+/// However, if a user absolutely needs an end result struct implementing
+/// `std::error::Error`, they can use this wrapper.
+#[derive(Debug, thiserror::Error)]
+pub struct StackedError(pub Error);
+
+/// Note: in most cases you can use `Error::from` or a call from `StackableErr`
+/// instead of these functions.
 impl Error {
     /// Returns an empty error stack
     pub fn empty() -> Self {
@@ -29,6 +40,8 @@ impl Error {
         Self::from_kind(ErrorKind::UnitError)
     }
 
+    /// Returns an error stack with a `BoxedError` around `e`, and location
+    /// info.
     #[track_caller]
     pub fn from_err<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
         let l = Location::caller();
@@ -37,13 +50,14 @@ impl Error {
         }
     }
 
+    /// Same as [Error::from_err] but without location.
     pub fn from_err_locationless<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
         Self {
             stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), None)],
         }
     }
 
-    /// Use `MapAddErr` instead of this
+    /// Returns an error stack with just `kind`.
     #[track_caller]
     pub fn from_kind<K: Into<ErrorKind>>(kind: K) -> Self {
         let l = Location::caller();
@@ -52,23 +66,26 @@ impl Error {
         }
     }
 
-    /// Use `MapAddErr` instead of this
+    /// Same as [Error::from_kind] but without location.
     pub fn from_kind_locationless<K: Into<ErrorKind>>(kind: K) -> Self {
         Self {
             stack: thin_vec![(kind.into(), None)],
         }
     }
 
+    /// Returns an error stack with just a `BoxedErr`.
     #[track_caller]
     pub fn from_box(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Self::from_kind(ErrorKind::BoxedError(e))
     }
 
+    /// Same as [Error::from_box] but without location.
     pub fn from_box_locationless(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Self::from_kind_locationless(ErrorKind::BoxedError(e))
     }
 
-    /// Use `StackableErr` instead of this if anything expensive in creating the
+    /// Adds `kind` to the error stack alongside location information. Use
+    /// `StackableErr` instead of this if anything expensive in creating the
     /// error is involved, because `stack_err` uses a closure analogous to
     /// `ok_or_else`.
     #[track_caller]
@@ -77,7 +94,7 @@ impl Error {
         self
     }
 
-    /// The same as [Error::add_err] but without pushing location to stack
+    /// Same as [Error::add_err] but without location.
     pub fn add_err_locationless<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
         self.stack.push((kind.into(), None));
         self

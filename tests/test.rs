@@ -1,6 +1,6 @@
 use std::mem;
 
-use stacked_errors::{Error, ErrorKind, Result, StackableErr};
+use stacked_errors::{Error, ErrorKind, Result, StackableErr, StackedError};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
@@ -146,4 +146,23 @@ fn stacking() {
     let tmp = Error::empty();
     let tmp: core::result::Result<(), Error> = tmp.stack_locationless();
     assert!(tmp.unwrap_err().stack.is_empty());
+}
+
+#[test]
+fn debug_and_display() {
+    //let x = format!("{}", ron::from_str::<bool>("lkj").unwrap_err());
+    let x = ErrorKind::StrError("hello");
+    assert_eq!(format!("{x:?}"), "StrError(\"hello\")");
+    assert_eq!(format!("{x}"), "hello");
+    let x = ErrorKind::StringError("hello".to_owned());
+    assert_eq!(format!("{x}"), "hello");
+    let x = Error::from_kind_locationless("hello");
+    assert_eq!(format!("{x:?}"), "Error { stack: [\nhello\n] }");
+    assert_eq!(format!("{x}"), "Error { stack: [\nhello\n] }");
+    let x = StackedError(x);
+    assert_eq!(
+        format!("{x:?}"),
+        "StackedError(Error { stack: [\nhello\n] })"
+    );
+    assert_eq!(format!("{x}"), "StackedError(Error { stack: [\nhello\n] })");
 }

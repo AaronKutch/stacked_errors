@@ -19,25 +19,25 @@ pub enum ErrorKind {
     TimeoutError,
     #[error("ProbablyNotRootCauseError")]
     ProbablyNotRootCauseError,
-    #[error("StrError")]
+    #[error("{0}")]
     StrError(&'static str),
-    #[error("StringError")]
+    #[error("{0}")]
     StringError(alloc::string::String),
-    #[error("BoxedError")]
+    #[error("{0}")]
     BoxedError(Box<dyn std::error::Error + Send + Sync>),
-    #[error("TryFromIntError")]
+    #[error("{0}")]
     TryFromIntError(core::num::TryFromIntError),
-    #[error("StdIoError")]
+    #[error("{0}")]
     StdIoError(std::io::Error),
-    #[error("FromUtf8Error")]
+    #[error("{0}")]
     FromUtf8Error(alloc::string::FromUtf8Error),
     // this is more obscure but I think we should keep it because it deals with bad strings, and
     // we don't want that in our generic string errors.
-    #[error("FromUtf16Error")]
+    #[error("{0}")]
     FromUtf16Error(alloc::string::FromUtf16Error),
-    #[error("ParseIntError")]
+    #[error("{0}")]
     ParseIntError(core::num::ParseIntError),
-    #[error("ParseFloatError")]
+    #[error("{0}")]
     ParseFloatError(core::num::ParseFloatError),
 }
 

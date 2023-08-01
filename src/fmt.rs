@@ -1,7 +1,8 @@
 use alloc::{fmt, fmt::Debug};
 use core::panic::Location;
+use std::fmt::Display;
 
-use crate::{Error, ErrorKind};
+use crate::{error::StackedError, Error, ErrorKind};
 
 /// For implementing `Debug`, this wrapper makes strings use their `Display`
 /// impl rather than `Debug` impl
@@ -65,5 +66,17 @@ impl Debug for Error {
             }
         }
         f.write_fmt(format_args!("] }}"))
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{:?}", self))
+    }
+}
+
+impl Display for StackedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{:?}", self))
     }
 }

@@ -103,11 +103,12 @@ mod stackable_err;
 use alloc::boxed::Box;
 mod fmt;
 
-pub use error::Error;
+pub use error::{Error, StackedError};
 pub use error_kind::ErrorKind;
 pub use fmt::{DisplayShortLocation, DisplayStr};
 pub use stackable_err::StackableErr;
 
+/// A shorthand for [core::result::Result<T, crate::Error>]
 pub type Result<T> = core::result::Result<T, Error>;
 
 macro_rules! unit_x {
