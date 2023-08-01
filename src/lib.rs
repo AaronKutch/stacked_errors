@@ -97,7 +97,12 @@
 //! f.stack()?;
 //! ```
 //! ```text
-//! // if needing to push another arbitrary error on the stack
+//! f.stack_err(|| ())?;
+//! // replace the above with
+//! f.stack()?;
+//! ```
+//! ```text
+//! // if needing to push another arbitrary error onto the stack
 //! f.stack_err(|| ErrorKind::from_err(arbitrary))?;
 //! ```
 //! ```text

@@ -1,11 +1,8 @@
 use crate::{Error, ErrorKind};
 
-/// The intention of this trait is to convert `Option<T>`s, `Result<T, Error>`s,
-/// and `Result<T, impl Into<ErrorKind>>`s into `Result<T, Error>`s with the
-/// error having an `ErrorKind` and a location pushed onto its stacks
-/// (`map_add_err` should have `#[track_caller]` on it and push on the
-/// `Location::caller()`). You can also call `map_add_err` on plain `Error`s and
-/// `impl Into<ErrorKind>`s to get a `Result<(), Error>`.
+/// Conversion to and addition to the stack of an `Error`.
+///
+/// See the main crate documentation and implementation for examples.
 pub trait StackableErr {
     type Output;
 
