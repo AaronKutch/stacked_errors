@@ -133,7 +133,7 @@ impl<T> StackableErr for Option<T> {
     fn stack_locationless(self) -> Self::Output {
         match self {
             Some(o) => Ok(o),
-            None => Err(Error::new_locationless()),
+            None => Err(Error::empty()),
         }
     }
 }
@@ -160,6 +160,12 @@ impl StackableErr for Error {
     }
 }
 
+//impl<E: std::error::Error + Send + Sync + 'static> StackableErr for E
+
+// this causes refactor issues when `T` is changed, and we can't fix this due to
+// conflicts, and this might not be good in the sense that `K0` is not wrapped
+// by anything indicating potential failure or is representing failure itself
+/*
 impl<K0: Into<ErrorKind>> StackableErr for K0 {
     type Output = core::result::Result<(), Error>;
 
@@ -182,3 +188,4 @@ impl<K0: Into<ErrorKind>> StackableErr for K0 {
         Err(Error::from_kind_locationless(self))
     }
 }
+*/

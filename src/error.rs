@@ -36,10 +36,6 @@ impl Error {
         Self::from_kind(ErrorKind::UnitError)
     }
 
-    pub fn new_locationless() -> Self {
-        Self::from_kind_locationless(ErrorKind::UnitError)
-    }
-
     #[track_caller]
     pub fn from_err<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
         let l = Location::caller();
@@ -102,7 +98,7 @@ impl Error {
         self
     }
 
-    /// Chains the stacks of `other` onto `self`
+    /// Moves the stack of `other` onto `self`
     pub fn chain_errors(mut self, mut other: Self) -> Self {
         self.stack.append(&mut other.stack);
         self
