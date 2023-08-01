@@ -5,16 +5,44 @@ use thin_vec::{thin_vec, ThinVec};
 
 use crate::ErrorKind;
 
-/// An experimental error struct that has an internal stack for different kinds
-/// of errors and [Location](core::panic::Location)s. This is a replacement for
-/// the bad information you get from backtraces within `async` tasks.
+/// An error struct that has an internal stack for different kinds of errors and
+/// [Location](core::panic::Location)s. This is a replacement for the bad
+/// information you get from backtraces within `async` tasks.
 ///
-/// # Note
+/// ```
+/// use stacked_errors::{Error, Result, StackableErr};
 ///
-/// Import the `StackableErr` trait and use `.stack_err` or the other functions.
+/// // Note that `Error` uses `ThinVec` internally, which means that it often
+/// // takes up only the space of a `usize` or the size of the `T` plus a byte.
+/// fn innermost(s: &str) -> Result<u8> {
+///     if s == "return error" {
+///         // When creating the initial `Result<_, Error>` from something that
+///         // is directly representable in a `ErrorKind` (i.e. not needing
+///         // `BoxedErr`), use this `Err(Error::from(...))` format. This
+///         // format is cumbersome relative to the other features of this
+///         // crate, but it is the best solution because of technicalities
+///         // related to trait collisions at the design level, type
+///         // inference with the return type, wanting to keep the directly
+///         // representable strings outside of a box for performance, and so
+///         // that the `Display` impl can make use of them.
 ///
-/// Use at least `.stack()` before every time an error is propogated
-/// up the stack to make sure the location stack is filled.
+///         return Err(Error::from("bottom level `StrErr`"))
+///     }
+///     if s == "eval invalid" {
+///         // However, this is the common case where we have some external
+///         // crate function that returns a `Result<..., E: Error>`. We
+///         // usually call `StackableErr::stack_err` if we want to attach
+///         // some message to it right away (it is called with a closure
+///         // so that it doesn't have impact on the `Ok` cases). Otherwise, we
+///         // just call `StackableErr::stack` so that the location is pushed
+///         // on the stack. We can then use `?` directly.
+///
+///         let _ = ron::from_str("invalid").stack_err(|| format!("parsing error with \"{s}\""))?;
+///     }
+///
+///     Ok(42)
+/// }
+/// ```
 pub struct Error {
     // using a ThinVec has many advantages from taking as little space as possible, having single
     // indirection vs. other methods, and having the niche optimizations applied to `Result<(),
