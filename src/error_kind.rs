@@ -10,9 +10,10 @@ use alloc::boxed::Box;
 /// `ProbablyNotRootCauseError` is used to signal that the error is probably not
 /// the "root cause". This is used by the `super_orchestrator` crate to reduce
 /// noise when one error triggers a cascade of errors in a network.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Default)]
 pub enum ErrorKind {
     // used for special cases where we need something
+    #[default]
     #[error("UnitError")]
     UnitError,
     #[error("TimeoutError")]
@@ -64,11 +65,5 @@ impl ErrorKind {
         } else {
             Err(self)
         }
-    }
-}
-
-impl Default for ErrorKind {
-    fn default() -> Self {
-        UnitError
     }
 }
