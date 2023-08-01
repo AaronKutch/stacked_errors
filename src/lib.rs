@@ -88,6 +88,64 @@
 //! ] })"#
 //! );
 //! ```
+//!
+//! Some other partial examples of what using the crate properly looks like:
+//!
+//! ```text
+//! f.map_err(|e| Error::from_box(Box::new(e)))?;
+//! // replace the above with
+//! f.stack()?;
+//! ```
+//! ```text
+//! // if needing to push another arbitrary error on the stack
+//! f.stack_err(|| ErrorKind::from_err(arbitrary))?;
+//! ```
+//! ```text
+//! let dir = self
+//!     .path
+//!     .parent()
+//!     .stack_err(|| "FileOptions::preacquire() -> empty path")?
+//!     .to_str()
+//!     .stack_err(|| "bad OsStr conversion")?;
+//! ```
+//! ```text
+//! option.take()
+//!     .stack_err(|| "`Struct` has already had some termination method called")?
+//!     .wait_with_output()
+//!     .await
+//!     .stack_err(|| {
+//!         format!("{self:?}.outer_wait_with_output() -> failed when waiting")
+//!     })?;
+//! ```
+//! ```text
+//! // strings and some std errors can be created like this,
+//! return Err(Error::from(format!(
+//!     "failure of {x:?} to complete"
+//! )))
+//! // otherwise use this (also note that `Error::from*` includes
+//! // `#[track_caller]` location, no need to add on a `stack` call)
+//! return Err(Error::from_err(needs_boxing))
+//! ```
+//! ```text
+//! // when the error type is already `crate::Error` you can do this if it is
+//! // preferable over `map`
+//! return match ... {
+//!     Ok(ok) => {
+//!         ...
+//!     }
+//!     Err(e) => Err(e.add_kind(format!("wait_for_ok_lookup_host(.., host: {host})"))),
+//! }
+//! ```
+//! ```text
+//! // in commonly used functions you may want `_locationless` to avoid adding
+//! // on unnecessary information if the location is already being added on
+//! return Err(e.add_err_locationless(ErrorKind::TimeoutError)).stack_err(|| {
+//!     format!(
+//!         "wait_for_ok(num_retries: {num_retries}, delay: {delay:?}) timeout, \
+//!          last error stack was:"
+//!     )
+//! })
+//! ```
 
 // TODO when https://github.com/rust-lang/rust/issues/103765 is stabilized
 // we can make a large subset as no_std

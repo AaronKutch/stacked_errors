@@ -45,14 +45,14 @@ impl<T> StackableErr for core::result::Result<T, Error> {
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(e) => Err(e.add_err(f())),
+            Err(e) => Err(e.add_kind(f())),
         }
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(e) => Err(e.add_err_locationless(f())),
+            Err(e) => Err(e.add_kind_locationless(f())),
         }
     }
 
@@ -77,14 +77,14 @@ impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for core::res
         match self {
             Ok(o) => Ok(o),
             // location added by boxing
-            Err(err) => Err(Error::from_box(Box::new(err)).add_err_locationless(f())),
+            Err(err) => Err(Error::from_box(Box::new(err)).add_kind_locationless(f())),
         }
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(err) => Err(Error::from_box_locationless(Box::new(err)).add_err_locationless(f())),
+            Err(err) => Err(Error::from_box_locationless(Box::new(err)).add_kind_locationless(f())),
         }
     }
 
@@ -143,11 +143,11 @@ impl StackableErr for Error {
 
     #[track_caller]
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(self.add_err(f()))
+        Err(self.add_kind(f()))
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(self.add_err_locationless(f()))
+        Err(self.add_kind_locationless(f()))
     }
 
     #[track_caller]

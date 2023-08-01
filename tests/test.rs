@@ -107,9 +107,9 @@ fn stacking() {
     assert_stack(Err(Error::from_err_locationless(y())), false, true, false);
     assert_stack(Err(Error::from_kind("s")), false, false, true);
     assert_stack(Err(Error::from_kind_locationless("s")), false, false, false);
-    assert_stack(Err(Error::empty().add_err("s")), false, false, true);
+    assert_stack(Err(Error::empty().add_kind("s")), false, false, true);
     assert_stack(
-        Err(Error::empty().add_err_locationless("s")),
+        Err(Error::empty().add_kind_locationless("s")),
         false,
         false,
         false,

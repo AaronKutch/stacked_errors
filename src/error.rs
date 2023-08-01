@@ -89,13 +89,13 @@ impl Error {
     /// error is involved, because `stack_err` uses a closure analogous to
     /// `ok_or_else`.
     #[track_caller]
-    pub fn add_err<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
+    pub fn add_kind<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
         self.stack.push((kind.into(), Some(Location::caller())));
         self
     }
 
-    /// Same as [Error::add_err] but without location.
-    pub fn add_err_locationless<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
+    /// Same as [Error::add_kind] but without location.
+    pub fn add_kind_locationless<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
         self.stack.push((kind.into(), None));
         self
     }
