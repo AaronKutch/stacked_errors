@@ -1,10 +1,11 @@
 use std::mem;
 
-use stacked_errors::{Error, ErrorKind, MapAddError, Result};
+use stacked_errors::{Error, ErrorKind, Result, StackableErr};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
-        Err(Error::from(s.to_owned())).map_add_err(|| "map_add_err")
+        //Err(Error::from(s.to_owned()))
+        s.to_owned().stack_err(|| "hello")
     } else {
         Ok(s.to_owned())
     }
@@ -23,7 +24,16 @@ fn error_debug() {
         format!("{:?}", ex("hello\"", false)),
         r#"Ok("hello\"")"#.to_owned()
     );
-    let tmp = ex("hello", true);
+    let tmp = ex("hello", true)
+        .stack()
+        .stack_locationless()
+        .stack_err(|| "test")
+        .stack_err_locationless(|| {
+            ErrorKind::from_err(ron::from_str::<bool>("invalid").unwrap_err())
+        })
+        .stack_err_locationless(|| {
+            ErrorKind::from_box(Box::new(ron::from_str::<bool>("invalid").unwrap_err()))
+        });
     dbg!(&tmp);
     assert_eq!(
         format!("{:?}", tmp),
@@ -49,4 +59,17 @@ fn error_size() {
     assert_eq!(mem::size_of::<Error>(), mem::size_of::<usize>());
     assert_eq!(mem::size_of::<Option<Error>>(), mem::size_of::<usize>());
     assert_eq!(mem::size_of::<Result<()>>(), mem::size_of::<usize>());
+}
+
+#[test]
+fn stacking() {
+    use ron::error::SpannedError;
+    let tmp: std::result::Result<bool, SpannedError> = ron::from_str("invalid");
+    let tmp: Result<bool> = tmp.stack_err(|| "test");
+    let mut tmp: Error = tmp.unwrap_err();
+    assert_eq!(tmp.stack.len(), 2);
+    let kind: ErrorKind = tmp.stack.pop().unwrap().0;
+    assert!(matches!(kind, ErrorKind::StrError(_)));
+    let kind: ErrorKind = tmp.stack.pop().unwrap().0;
+    let _: SpannedError = kind.downcast().unwrap();
 }

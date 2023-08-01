@@ -43,38 +43,36 @@ pub enum ErrorKind {
     ParseIntError(core::num::ParseIntError),
     #[error("ParseFloatError")]
     ParseFloatError(core::num::ParseFloatError),
-    #[cfg(feature = "tokio_rt_support")]
-    #[error("TokioJoinError")]
-    TokioJoinError(tokio::task::JoinError),
-    // Borsh effecively uses `std::io::Error`
-    #[cfg(feature = "ron_support")]
-    #[error("RonError")]
-    RonError(Box<ron::error::Error>), // box
-    #[cfg(feature = "serde_json_support")]
-    #[error("SerdeJsonError")]
-    SerdeJsonError(serde_json::Error),
-    #[cfg(feature = "ctrlc_support")]
-    #[error("CtrlcError")]
-    CtrlcError(ctrlc::Error),
-    #[cfg(feature = "toml_support")]
-    #[error("TomlDeError")]
-    TomlDeError(Box<toml::de::Error>), // box
-    #[cfg(feature = "toml_support")]
-    #[error("TomlSerError")]
-    TomlSerError(Box<toml::ser::Error>), // box
-    #[cfg(feature = "serde_yaml_support")]
-    #[error("SerdeYamlError")]
-    SerdeYamlError(serde_yaml::Error),
-    #[cfg(feature = "reqwest_support")]
-    #[error("ReqwestError")]
-    ReqwestError(reqwest::Error),
-    #[cfg(feature = "hyper_support")]
-    #[error("HyperError")]
-    HyperError(hyper::Error),
+}
+
+use ErrorKind::*;
+
+impl ErrorKind {
+    pub fn from_err<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
+        ErrorKind::BoxedError(Box::new(e))
+    }
+
+    pub fn from_box(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        ErrorKind::BoxedError(e)
+    }
+
+    /// Attempts to downcast from a `ErrorKind::BoxedError` to a concrete type.
+    /// Returns the input in an `Err` if it was not an `ErrorKind::BoxedError`
+    /// or the box would not downcast.
+    pub fn downcast<E: std::error::Error + 'static>(self) -> Result<E, Self> {
+        if let BoxedError(boxed_err) = self {
+            match boxed_err.downcast() {
+                Ok(err) => Ok(*err),
+                Err(boxed_err) => Err(Self::BoxedError(boxed_err)),
+            }
+        } else {
+            Err(self)
+        }
+    }
 }
 
 impl Default for ErrorKind {
     fn default() -> Self {
-        Self::UnitError
+        UnitError
     }
 }

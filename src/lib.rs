@@ -8,14 +8,14 @@ mod error;
 /// Note: you should probably use `default-features = false` in your
 /// `Cargo.toml`
 mod error_kind;
-mod map_add_err;
+mod stackable_err;
 use alloc::boxed::Box;
 mod fmt;
 
 pub use error::Error;
 pub use error_kind::ErrorKind;
 pub use fmt::{DisplayShortLocation, DisplayStr};
-pub use map_add_err::MapAddError;
+pub use stackable_err::StackableErr;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -83,22 +83,6 @@ type X4 = alloc::string::FromUtf8Error;
 x!(FromUtf8Error X4);
 type X5 = alloc::string::FromUtf16Error;
 x!(FromUtf16Error X5);
-#[cfg(feature = "tokio_rt_support")]
-type X6 = tokio::task::JoinError;
-#[cfg(feature = "tokio_rt_support")]
-x!(TokioJoinError X6);
-#[cfg(feature = "serde_json_support")]
-type X7 = serde_json::Error;
-#[cfg(feature = "serde_json_support")]
-x!(SerdeJsonError X7);
-#[cfg(feature = "ron_support")]
-type X8 = ron::error::Error;
-#[cfg(feature = "ron_support")]
-x_box!(RonError X8);
-#[cfg(feature = "ctrlc_support")]
-type X9 = ctrlc::Error;
-#[cfg(feature = "ctrlc_support")]
-x!(CtrlcError X9);
 type X10 = core::num::ParseIntError;
 x!(ParseIntError X10);
 type X11 = core::num::ParseFloatError;
@@ -107,26 +91,6 @@ type X12 = core::num::TryFromIntError;
 x!(TryFromIntError X12);
 type X13 = Box<dyn std::error::Error + Send + Sync>;
 x!(BoxedError X13);
-#[cfg(feature = "toml_support")]
-type X14 = toml::de::Error;
-#[cfg(feature = "toml_support")]
-x_box!(TomlDeError X14);
-#[cfg(feature = "toml_support")]
-type X15 = toml::ser::Error;
-#[cfg(feature = "toml_support")]
-x_box!(TomlSerError X15);
-#[cfg(feature = "serde_yaml_support")]
-type X16 = serde_yaml::Error;
-#[cfg(feature = "serde_yaml_support")]
-x!(SerdeYamlError X16);
-#[cfg(feature = "reqwest_support")]
-type X17 = reqwest::Error;
-#[cfg(feature = "reqwest_support")]
-x!(ReqwestError X17);
-#[cfg(feature = "hyper_support")]
-type X18 = hyper::Error;
-#[cfg(feature = "hyper_support")]
-x!(HyperError X18);
 
 /*
 type X = ;
