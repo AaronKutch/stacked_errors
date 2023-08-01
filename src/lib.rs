@@ -1,3 +1,94 @@
+//! ```
+//! use stacked_errors::{Error, Result, StackableErr};
+//!
+//! // Note that `Error` uses `ThinVec` internally, which means that it often
+//! // takes up only the stack space of a `usize` or the size of the `T` plus
+//! // a byte.
+//! fn innermost(s: &str) -> Result<u8> {
+//!     if s == "return error" {
+//!         // When creating the initial `Result<_, Error>` from something that
+//!         // is directly representable in a `ErrorKind` (i.e. not needing
+//!         // `BoxedErr`), use this `Err(Error::from(...))` format. This
+//!         // format is cumbersome relative to the other features of this
+//!         // crate, but it is the best solution because of technicalities
+//!         // related to trait collisions at the design level, `Result` type
+//!         // inference with the return type, wanting to keep the directly
+//!         // representable strings outside of a box for performance, and
+//!         // because of the `Display` impl which special cases them.
+//!
+//!         return Err(Error::from("bottom level `StrErr`"))
+//!     }
+//!     if s == "parse invalid" {
+//!         // However, this is the common case where we have some external
+//!         // crate function that returns a `Result<..., E: Error>`. We
+//!         // usually call `StackableErr::stack_err` if we want to attach
+//!         // some message to it right away (it is called with a closure
+//!         // so that it doesn't have impact on the `Ok` cases). Otherwise, we
+//!         // just call `StackableErr::stack` so that just the location is
+//!         // pushed on the stack. We can then use `?` directly.
+//!
+//!         let _ = ron::from_str("invalid").stack_err(|| format!("parsing error with \"{s}\""))?;
+//!     }
+//!     Ok(42)
+//! }
+//!
+//! fn inner(s: &str) -> Result<u16> {
+//!     // Chainable with other combinators. Use `stack_err` with a message for
+//!     // propogating up the stack when the error is something that should
+//!     // have some mid layer information attached for it for quick diagnosis
+//!     // by the user. Otherwise use just `stack` which will also do error
+//!     // conversion if necessary, avoiding needing to wrangle with `map_err`.
+//!
+//!     let x = innermost(s)
+//!         .map(|x| u16::from(x))
+//!         .stack_err(|| format!("error from innermost(\"{s}\")"))?;
+//!     Ok(x)
+//! }
+//!
+//! fn outer(s: &str) -> Result<u64> {
+//!     // ...
+//!
+//!     let x = inner(s).stack()?;
+//!
+//!     // ...
+//!     Ok(u64::from(x))
+//! }
+//!
+//! let res = format!("{:?}", outer("valid"));
+//! assert_eq!(res, "Ok(42)");
+//!
+//! // The line numbers are slightly off because this is a doc test.
+//! // In order from outer to the innermost call, it lists the location of the
+//! // `stack` call from `outer`, the location of `stack_err` from `inner`,
+//! // the associated error message, the location of either the `Error::from`
+//! // or `stack_err` from `innermost`, and finally the root error message.
+//!
+//! let res = format!("{:?}", outer("return error"));
+//! assert_eq!(
+//!     res,
+//!     r#"Err(Error { stack: [
+//! Location { file: "src/lib.rs", line: 54, col: 22 },
+//! Location { file: "src/lib.rs", line: 47, col: 10 },
+//! error from innermost("return error")
+//! Location { file: "src/lib.rs", line: 22, col: 20 },
+//! bottom level `StrErr`
+//! ] })"#
+//! );
+//!
+//! let res = format!("{:?}", outer("parse invalid"));
+//! assert_eq!(
+//!     res,
+//!     r#"Err(Error { stack: [
+//! Location { file: "src/lib.rs", line: 54, col: 22 },
+//! Location { file: "src/lib.rs", line: 47, col: 10 },
+//! error from innermost("parse invalid")
+//! parsing error with "parse invalid"
+//! Location { file: "src/lib.rs", line: 33, col: 42 },
+//! BoxedError(SpannedError { code: ExpectedUnit, position: Position { line: 1, col: 1 } }),
+//! ] })"#
+//! );
+//! ```
+
 // TODO when https://github.com/rust-lang/rust/issues/103765 is stabilized
 // we can make a large subset as no_std
 //#![no_std]
