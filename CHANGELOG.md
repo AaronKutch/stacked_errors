@@ -1,7 +1,9 @@
 # Changelog
 
-## [0.4.0] - TODO
+## [0.4.0] - 2023-08-01
 ### Changes
+- General overhaul of the crate. All non-std errors should be boxed now. The `MapAddError` trait has
+  been reworked into the `StackableErr` trait with better ergonomics. See the crate documentation
 - The `Debug` impl of `Error` now uses `DisplayShortLocation` on its locations
 
 ### Additions
