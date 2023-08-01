@@ -22,6 +22,22 @@ pub trait StackableErr {
     fn stack_locationless(self) -> Self::Output;
 }
 
+// NOTE: trait conflicts prevent us from implementing some desirable cases.
+// However, if specialization allows us to one day implement more, we have to be
+// careful that internal behavior similar to
+//
+// `Err(Error::from(string)).stack_err(|| "...")`
+//
+// is enforced, i.e. we do not want strings boxed if we were able to write
+//
+// `Err(string).stack()`
+// or `string.stack()`
+//
+// the current state of affairs is cumbersome when starting from a
+// `Into<ErrorKind>` wrapped with nothing, but we do not want to invoke the
+// `impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for
+// core::result::Result<T, E>` impl on any `Into<ErrorKind>` types
+
 impl<T> StackableErr for core::result::Result<T, Error> {
     type Output = core::result::Result<T, Error>;
 
@@ -150,7 +166,7 @@ impl<K0: Into<ErrorKind>> StackableErr for K0 {
     #[track_caller]
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         // avoid adding redundant locations
-        Err(Error::from_kind_locationless(self).add_err(f()))
+        Err(Error::from_kind(self).add_err_locationless(f()))
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {

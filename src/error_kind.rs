@@ -1,8 +1,7 @@
 use alloc::boxed::Box;
 
-/// In the future we plan on having almost every kind of error here under
-/// different feature gates. Please file an issue if you would like to include
-/// something.
+/// This includes `BoxedError` for general errors, tag errors, and only standard
+/// library errors are directly coded.
 ///
 /// The intention with `TimeoutError` is that if it is in the error stack, a
 /// timeout occured. When other timeout structs are used, this should be added
@@ -11,9 +10,6 @@ use alloc::boxed::Box;
 /// `ProbablyNotRootCauseError` is used to signal that the error is probably not
 /// the "root cause". This is used by the `super_orchestrator` crate to reduce
 /// noise when one error triggers a cascade of errors in a network.
-///
-/// Some things besides `BoxedError` are boxed to reduce the overall size of
-/// `ErrorKind`
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorKind {
     // used for special cases where we need something

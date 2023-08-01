@@ -4,8 +4,9 @@ use stacked_errors::{Error, ErrorKind, Result, StackableErr};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
-        //Err(Error::from(s.to_owned()))
-        s.to_owned().stack_err(|| "hello")
+        // this line is the critical case that must work
+        let _ = ron::from_str::<bool>("true").stack()?;
+        Err(Error::from(s.to_owned()))
     } else {
         Ok(s.to_owned())
     }
@@ -34,13 +35,16 @@ fn error_debug() {
         .stack_err_locationless(|| {
             ErrorKind::from_box(Box::new(ron::from_str::<bool>("invalid").unwrap_err()))
         });
-    dbg!(&tmp);
+    println!("{tmp:?}");
     assert_eq!(
         format!("{:?}", tmp),
         r#"Err(Error { stack: [
-Location { file: "tests/test.rs", line: 7, col: 40 },
-map_add_err
-Location { file: "tests/test.rs", line: 7, col: 13 },
+BoxedError(SpannedError { code: ExpectedBoolean, position: Position { line: 1, col: 1 } }),
+BoxedError(SpannedError { code: ExpectedBoolean, position: Position { line: 1, col: 1 } }),
+Location { file: "tests/test.rs", line: 31, col: 10 },
+test
+Location { file: "tests/test.rs", line: 29, col: 10 },
+Location { file: "tests/test.rs", line: 9, col: 13 },
 hello
 ] })"#
             .to_owned()
