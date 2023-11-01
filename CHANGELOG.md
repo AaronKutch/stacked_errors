@@ -3,6 +3,7 @@
 ## [0.5.0] - TODO
 ### Additions
 - Added the macros `ensure`, `ensure_eq`, `ensure_ne`
+- Added `Cow<'static, str>` to the error kinds
 
 ## [0.4.0] - 2023-08-01
 ### Changes

@@ -25,6 +25,8 @@ pub enum ErrorKind {
     #[error("{0}")]
     StringError(alloc::string::String),
     #[error("{0}")]
+    CowStrError(alloc::borrow::Cow<'static, str>),
+    #[error("{0}")]
     BoxedError(Box<dyn std::error::Error + Send + Sync>),
     #[error("{0}")]
     TryFromIntError(core::num::TryFromIntError),
