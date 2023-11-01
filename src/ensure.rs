@@ -100,7 +100,7 @@ macro_rules! ensure_eq {
     ($lhs:expr, $rhs:expr) => {
         if $lhs != $rhs {
             return Err($crate::Error::from_kind($crate::__private::format!(
-                "ensure_eq(\n lhs: {}\n rhs: {}\n) -> equality assertion failed",
+                "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
                 $lhs,
                 $rhs,
             )))
@@ -159,7 +159,7 @@ macro_rules! ensure_ne {
     ($lhs:expr, $rhs:expr) => {
         if $lhs == $rhs {
             return Err($crate::Error::from_kind($crate::__private::format!(
-                "ensure_ne(\n lhs: {}\n rhs: {}\n) -> inequality assertion failed",
+                "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
                 $lhs,
                 $rhs,
             )))
