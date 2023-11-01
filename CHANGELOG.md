@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.0] - TODO
+### Additions
+- Added the macros `ensure`, `ensure_eq`, `ensure_ne`
+
 ## [0.4.0] - 2023-08-01
 ### Changes
 - General overhaul of the crate. All non-std errors should be boxed now. The `MapAddError` trait has

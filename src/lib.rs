@@ -157,6 +157,7 @@
 //#![no_std]
 
 extern crate alloc;
+mod ensure;
 mod error;
 /// This is an experimental errors crate.
 /// Note: you should probably use `default-features = false` in your
@@ -173,6 +174,13 @@ pub use stackable_err::StackableErr;
 
 /// A shorthand for [core::result::Result<T, crate::Error>]
 pub type Result<T> = core::result::Result<T, Error>;
+
+/// used by the macros
+#[doc(hidden)]
+pub mod __private {
+    pub use alloc::format;
+    pub use core::{concat, stringify};
+}
 
 macro_rules! unit_x {
     ($kind:ident $x:ty) => {
