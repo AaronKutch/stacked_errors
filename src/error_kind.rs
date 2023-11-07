@@ -11,6 +11,7 @@ use alloc::boxed::Box;
 /// the "root cause". This is used by the `super_orchestrator` crate to reduce
 /// noise when one error triggers a cascade of errors in a network.
 #[derive(Debug, thiserror::Error, Default)]
+#[non_exhaustive]
 pub enum ErrorKind {
     // used for special cases where we need something
     #[default]
