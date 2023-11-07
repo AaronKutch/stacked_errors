@@ -11,6 +11,7 @@ use alloc::boxed::Box;
 /// the "root cause". This is used by the `super_orchestrator` crate to reduce
 /// noise when one error triggers a cascade of errors in a network.
 #[derive(Debug, thiserror::Error, Default)]
+#[non_exhaustive]
 pub enum ErrorKind {
     // used for special cases where we need something
     #[default]
@@ -24,6 +25,8 @@ pub enum ErrorKind {
     StrError(&'static str),
     #[error("{0}")]
     StringError(alloc::string::String),
+    #[error("{0}")]
+    CowStrError(alloc::borrow::Cow<'static, str>),
     #[error("{0}")]
     BoxedError(Box<dyn std::error::Error + Send + Sync>),
     #[error("{0}")]

@@ -254,6 +254,8 @@ type X12 = core::num::TryFromIntError;
 x!(TryFromIntError X12);
 type X13 = Box<dyn std::error::Error + Send + Sync>;
 x!(BoxedError X13);
+type X14 = alloc::borrow::Cow<'static, str>;
+x!(CowStrError X14);
 
 /*
 type X = ;

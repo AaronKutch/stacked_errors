@@ -1,8 +1,12 @@
 # Changelog
 
-## [0.5.0] - TODO
+## [0.5.0] - 2023-11-07
+### Changes
+- Added `#[non_exhaustive]` to `ErrorKind`
+
 ### Additions
 - Added the macros `ensure`, `ensure_eq`, `ensure_ne`
+- Added `Cow<'static, str>` to the error kinds
 
 ## [0.4.0] - 2023-08-01
 ### Changes
