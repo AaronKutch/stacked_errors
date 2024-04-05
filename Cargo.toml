@@ -11,7 +11,7 @@ repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
 categories = ["data-structures"]
 keywords = ["error", "error-handling", "stacked-errors"]
-description = "An error type for better `async` backtraces"
+description = "high level error propogation with programmed backtraces"
 
 [dependencies]
 thin-vec = "0.2"

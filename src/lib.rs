@@ -1,3 +1,63 @@
+//! A crate for high level error propogation with programmed backtraces.
+//!
+//! In Rust development, major crates will often have their own error enums that
+//! work well in their own specialized domain, but when orchestrating many
+//! domains together we run into issues. `map_err` is very annoying to work
+//! with. In `async` call stacks we run into an especially annoying problem
+//! where the same kind of error can be returned from multiple places, and we
+//! are sometimes forced into `println` debugging to find out where it is actually
+//! from. This crate introduces the `StackableErr` trait and a "stackable" error
+//! type that allows for both software-defined error backtraces and easily
+//! converting errors into the stackable error type.
+//!
+//! Some partial examples of what using the crate looks like:
+//!
+//! ```text
+//! f.map_err(|e| Error::from_box(Box::new(e)))?;
+//! // replace the above with
+//! f.stack()?; // uses `#[track_caller]` when an error is being propagated
+//! ```
+//! ```text
+//! let dir = self
+//!     .path
+//!     .parent()
+//!     .stack_err(|| "FileOptions::preacquire() -> empty path")?
+//!     .to_str()
+//!     .stack_err(|| "bad OsStr conversion")?;
+//! ```
+//! ```text
+//! // if needing to push another arbitrary error onto the stack
+//! f.stack_err(|| ErrorKind::from_err(arbitrary))?;
+//! ```
+//! ```text
+//! option.take()
+//!     .stack_err(|| "`Struct` has already been taken")?
+//!     .wait_with_output()
+//!     .await
+//!     .stack_err(|| {
+//!         format!("{self:?}.xyz() -> failed when waiting")
+//!     })?;
+//! ```
+//! ```text
+//! // strings and some std errors can be created like this,
+//! return Err(Error::from(format!(
+//!     "failure of {x:?} to complete"
+//! )))
+//! // otherwise use this (also note that `Error::from*` includes
+//! // `#[track_caller]` location, no need to add on a `stack` call)
+//! return Err(Error::from_err(needs_boxing))
+//! ```
+//! ```text
+//! // when the error type is already `stacked_errors::Error` you can do this if it is
+//! // preferable over `map`
+//! return match ... {
+//!     Ok(ok) => {
+//!         ...
+//!     }
+//!     Err(e) => Err(e.add_kind(format!("myfunction(.., host: {host})"))),
+//! }
+//! ```
+//!
 //! ```
 //! use stacked_errors::{Error, Result, StackableErr};
 //!
@@ -89,58 +149,8 @@
 //! );
 //! ```
 //!
-//! Some other partial examples of what using the crate properly looks like:
+//! Also remember that `.stack_err(|| ())` is equivalent to `.stack()`
 //!
-//! ```text
-//! f.map_err(|e| Error::from_box(Box::new(e)))?;
-//! // replace the above with
-//! f.stack()?;
-//! ```
-//! ```text
-//! f.stack_err(|| ())?;
-//! // replace the above with
-//! f.stack()?;
-//! ```
-//! ```text
-//! // if needing to push another arbitrary error onto the stack
-//! f.stack_err(|| ErrorKind::from_err(arbitrary))?;
-//! ```
-//! ```text
-//! let dir = self
-//!     .path
-//!     .parent()
-//!     .stack_err(|| "FileOptions::preacquire() -> empty path")?
-//!     .to_str()
-//!     .stack_err(|| "bad OsStr conversion")?;
-//! ```
-//! ```text
-//! option.take()
-//!     .stack_err(|| "`Struct` has already had some termination method called")?
-//!     .wait_with_output()
-//!     .await
-//!     .stack_err(|| {
-//!         format!("{self:?}.outer_wait_with_output() -> failed when waiting")
-//!     })?;
-//! ```
-//! ```text
-//! // strings and some std errors can be created like this,
-//! return Err(Error::from(format!(
-//!     "failure of {x:?} to complete"
-//! )))
-//! // otherwise use this (also note that `Error::from*` includes
-//! // `#[track_caller]` location, no need to add on a `stack` call)
-//! return Err(Error::from_err(needs_boxing))
-//! ```
-//! ```text
-//! // when the error type is already `crate::Error` you can do this if it is
-//! // preferable over `map`
-//! return match ... {
-//!     Ok(ok) => {
-//!         ...
-//!     }
-//!     Err(e) => Err(e.add_kind(format!("wait_for_ok_lookup_host(.., host: {host})"))),
-//! }
-//! ```
 //! ```text
 //! // in commonly used functions you may want `_locationless` to avoid adding
 //! // on unnecessary information if the location is already being added on
@@ -155,6 +165,8 @@
 // TODO when https://github.com/rust-lang/rust/issues/103765 is stabilized
 // we can make a large subset as no_std
 //#![no_std]
+//#[cfg(feature = "std")]
+//extern crate std;
 
 extern crate alloc;
 mod ensure;
@@ -163,16 +175,15 @@ mod error;
 /// Note: you should probably use `default-features = false` in your
 /// `Cargo.toml`
 mod error_kind;
-mod stackable_err;
-use alloc::boxed::Box;
 mod fmt;
+mod stackable_err;
 
 pub use error::{Error, StackedError};
 pub use error_kind::ErrorKind;
 pub use fmt::{DisplayShortLocation, DisplayStr};
 pub use stackable_err::StackableErr;
 
-/// A shorthand for [core::result::Result<T, crate::Error>]
+/// A shorthand for [core::result::Result<T, stacked_errors::Error>]
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// used by the macros

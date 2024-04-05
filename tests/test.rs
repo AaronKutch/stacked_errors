@@ -12,6 +12,7 @@ fn ex(s: &str, error: bool) -> Result<String> {
     }
 }
 
+#[allow(unused)]
 trait VerifyCapable: Send + Sync {}
 impl VerifyCapable for Error {}
 
