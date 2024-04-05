@@ -1,26 +1,40 @@
-use alloc::boxed::Box;
 use core::panic::Location;
 
 use thin_vec::{thin_vec, ThinVec};
 
 use crate::ErrorKind;
 
-/// An error struct that has an internal stack for different kinds of errors and
-/// [Location](core::panic::Location)s. This is a replacement for the bad
-/// information you get from backtraces within `async` tasks.
+/// An error struct intended for high level error propogation with programmable
+/// backtraces
+///
+/// For lower level error propogation, you should still use ordinary [Option]
+/// and [Result] with domain-specific enums, it is only when using OS-level
+/// functions or when multiple domains converge that this is intended to be
+/// used. This has an internal stack for different kinds of arbitrary lower
+/// level errors and [Location](core::panic::Location)s. When used with the
+/// [StackableErr](crate::StackableErr) trait, this enables easy conversion and
+/// software defined backtraces for better `async` debugging. See the crate docs
+/// for more.
+///
+/// Note that due to trait conflicts and not wanting users to accidentally
+/// wastefully embed `stacked_errors::Error` in a `BoxedErr` of another
+/// `stacked_errors::Error`, `stacked_errors::Error` itself does not actually
+/// implement [std::error::Error]. This does not pose a problem in most cases
+/// since it is intended to be the highest level of error that is directly
+/// returned or panicked on. However, if a user needs the end result struct to
+/// implement [std::error::Error], they can use the
+/// [StackedError](crate::StackedError) wrapper.
 pub struct Error {
-    // using a ThinVec has many advantages from taking as little space as possible, having single
-    // indirection vs. other methods, and having the niche optimizations applied to `Result<(),
-    // Error>` and others.
+    /// Using a ThinVec has advantages such as taking as little space as
+    /// possible on the stack (since we are commiting to some indirection at
+    /// this point), and having the niche optimizations applied to things like
+    /// `Result<(), Error>`.
     pub stack: ThinVec<(ErrorKind, Option<&'static Location<'static>>)>,
 }
 
-/// Due to trait conflicts and not wanting users to accidentally embed
-/// `crate::Error` in a `BoxedErr` of another `crate::Error`, `crate::Error`
-/// itself does not actually implement `std::error::Error`. This does not pose a
-/// problem in most cases, since `main` functions can return `Return<T, Error>`.
-/// However, if a user absolutely needs an end result struct implementing
-/// `std::error::Error`, they can use this wrapper.
+/// Wraps around [stacked_errors::Error](crate::Error) to implement
+/// [std::error::Error], since [stacked_errors::Error](crate::Error) itself
+/// cannot implement the trait.
 #[derive(Debug, thiserror::Error)]
 pub struct StackedError(pub Error);
 

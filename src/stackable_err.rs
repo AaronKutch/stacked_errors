@@ -1,21 +1,22 @@
 use crate::{Error, ErrorKind};
 
-/// Conversion to and addition to the stack of an `Error`.
+/// Conversion to and addition to the stack of a
+/// [stackable_error::Error](crate::Error).
 ///
 /// See the main crate documentation and implementation for examples.
 pub trait StackableErr {
     type Output;
 
-    /// Pushes the result of `f` and location information to the stack
+    /// Pushes the result of `f` and location information to the error stack
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output;
 
-    /// Pushes the result of `f` without location information
+    /// Pushes the result of `f` without location information to the error stack
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output;
 
-    /// Pushes just location information to the stack
+    /// Pushes just location information to the error stack
     fn stack(self) -> Self::Output;
 
-    /// Only converts to `Self::Output`
+    /// Only converts to `Self::Output` and pushes it on the error stack
     fn stack_locationless(self) -> Self::Output;
 }
 

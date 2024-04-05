@@ -1,7 +1,5 @@
-use alloc::boxed::Box;
-
-/// This includes `BoxedError` for general errors, tag errors, and only standard
-/// library errors are directly coded.
+/// This includes `BoxedError` for general errors, tag errors, and directly
+/// encoded standard library errors.
 ///
 /// The intention with `TimeoutError` is that if it is in the error stack, a
 /// timeout occured. When other timeout structs are used, this should be added
