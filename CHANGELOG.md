@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.1] - 2024-04-04
+### Fixes
+- `DisplayShortLocation` now works as intended on Windows
+
 ## [0.5.0] - 2023-11-07
 ### Changes
 - Added `#[non_exhaustive]` to `ErrorKind`

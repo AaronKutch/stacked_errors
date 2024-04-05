@@ -17,20 +17,33 @@ impl<'a> Debug for DisplayStr<'a> {
 /// `file` field
 ///
 /// If this detects "/.cargo/registry/src/" in the `file` field, it truncates
-/// that and all previous characters, and the following "/" group if it exists.
-/// For example,
+/// that and all previous characters, and the following "/" group if it exists
+/// (it is alternately configured to do this with "\\" on Windows). For example,
 /// "/home/admin/.cargo/registry/src/index.crates.io-6f17d22bba15001f/
 /// super_orchestrator-0.5.1/src/misc.rs"
 /// gets truncated to "super_orchestrator-0.5.1/src/misc.rs"
 pub struct DisplayShortLocation<'a>(pub &'a Location<'a>);
 impl<'a> Debug for DisplayShortLocation<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let find = "/.cargo/registry/src/";
         let mut s = self.0.file();
-        if let Some(i) = s.find(find) {
-            s = &s[(i + find.len())..];
-            if let Some(i) = s.find('/') {
-                s = &s[(i + 1)..];
+        #[cfg(not(windows))]
+        {
+            let find = "/.cargo/registry/src/";
+            if let Some(i) = s.find(find) {
+                s = &s[(i + find.len())..];
+                if let Some(i) = s.find('/') {
+                    s = &s[(i + 1)..];
+                }
+            }
+        }
+        #[cfg(windows)]
+        {
+            let find = "\\.cargo\\registry\\src\\";
+            if let Some(i) = s.find(find) {
+                s = &s[(i + find.len())..];
+                if let Some(i) = s.find('\\') {
+                    s = &s[(i + 1)..];
+                }
             }
         }
         f.write_fmt(format_args!(
