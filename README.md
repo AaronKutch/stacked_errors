@@ -7,10 +7,10 @@
  domains together we run into issues. `map_err` is very annoying to work
  with. In `async` call stacks we run into an especially annoying problem
  where the same kind of error can be returned from multiple places, and we
- are sometimes forced into `println` debugging to find out where it is actually
- from. This crate introduces the `StackableErr` trait and a "stackable" error
- type that allows for both software-defined error backtraces and easily
- converting errors into the stackable error type.
+ are sometimes forced into `println` debugging to find out where it is
+ actually from. This crate introduces the `StackableErr` trait and a
+ "stackable" error type that allows for both software-defined error
+ backtraces and easily converting errors into the stackable error type.
 
  Some partial examples of what using the crate looks like:
 
