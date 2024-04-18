@@ -55,11 +55,13 @@ macro_rules! ensure {
 }
 
 /// Asserts that two expressions are equal to each other (with [PartialEq]),
-/// returning a stackable error if they are not.
+/// returning a stackable error if they are equal. [Debug] is also required if
+/// there is no custom message.
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are unequal. A custom message can be
-/// attached that is used as a [StackableErr](crate::StackableErr) argument.
+/// attached that is used as an [Error::from_kind](crate::Error::from_kind)
+/// argument.
 ///
 /// ```
 /// use stacked_errors::{ensure_eq, Result, StackableErr};
@@ -98,27 +100,39 @@ macro_rules! ensure {
 #[macro_export]
 macro_rules! ensure_eq {
     ($lhs:expr, $rhs:expr) => {
-        if $lhs != $rhs {
-            return Err($crate::Error::from_kind($crate::__private::format!(
-                "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
-                $lhs,
-                $rhs,
-            )))
+        // use the strategy that the core library does for `assert_eq`
+        match (&$lhs, &$rhs) {
+            (lhs, rhs) => {
+                // use the double inversion because we are relying on `PartialEq`
+                if !(*lhs == *rhs) {
+                    return Err($crate::Error::from_kind($crate::__private::format!(
+                        "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
+                        lhs,
+                        rhs,
+                    )))
+                }
+            }
         }
     };
     ($lhs:expr, $rhs:expr, $msg:expr) => {
-        if $lhs != $rhs {
-            return Err($crate::Error::from_kind($msg))
+        match (&$lhs, &$rhs) {
+            (lhs, rhs) => {
+                if !(*lhs == *rhs) {
+                    return Err($crate::Error::from_kind($msg))
+                }
+            }
         }
     };
 }
 
 /// Asserts that two expressions are not equal to each other (with [PartialEq]),
-/// returning a stackable error if they are equal.
+/// returning a stackable error if they are equal. [Debug] is also required if
+/// there is no custom message.
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are equal. A custom message can be
-/// attached that is used as a [StackableErr](crate::StackableErr) argument.
+/// attached that is used as an [Error::from_kind](crate::Error::from_kind)
+/// argument.
 ///
 /// ```
 /// use stacked_errors::{ensure_ne, Result, StackableErr};
@@ -157,17 +171,27 @@ macro_rules! ensure_eq {
 #[macro_export]
 macro_rules! ensure_ne {
     ($lhs:expr, $rhs:expr) => {
-        if $lhs == $rhs {
-            return Err($crate::Error::from_kind($crate::__private::format!(
-                "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
-                $lhs,
-                $rhs,
-            )))
+        // use the strategy that the core library does for `assert_ne`
+        match (&$lhs, &$rhs) {
+            (lhs, rhs) => {
+                // use the double inversion because we are relying on `PartialEq`
+                if !(*lhs != *rhs) {
+                    return Err($crate::Error::from_kind($crate::__private::format!(
+                        "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
+                        lhs,
+                        rhs,
+                    )))
+                }
+            }
         }
     };
     ($lhs:expr, $rhs:expr, $msg:expr) => {
-        if $lhs == $rhs {
-            return Err($crate::Error::from_kind($msg))
+        match (&$lhs, &$rhs) {
+            (lhs, rhs) => {
+                if !(*lhs != *rhs) {
+                    return Err($crate::Error::from_kind($msg))
+                }
+            }
         }
     };
 }

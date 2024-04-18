@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.2] - 2024-04-18
+### Fixes
+- Fixed several minor issues with the `ensure*` macros
+
 ## [0.5.1] - 2024-04-04
 ### Fixes
 - `DisplayShortLocation` now works as intended on Windows

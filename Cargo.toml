@@ -1,6 +1,6 @@
 [package]
 name = "stacked_errors"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 # change the test suite version when changing this
 rust-version = "1.69"
