@@ -29,7 +29,7 @@
  ```
  ```rust
  // if needing to push another arbitrary error onto the stack
- f.stack_err(|| ErrorKind::from_err(arbitrary))?;
+ f.stack_err(|| ErrorKind::box_from(arbitrary))?;
  ```
  ```rust
  option.take()
@@ -47,7 +47,7 @@
  )))
  // otherwise use this (also note that `Error::from*` includes
  // `#[track_caller]` location, no need to add on a `stack` call)
- return Err(Error::from_err(needs_boxing))
+ return Err(Error::box_from(needs_boxing))
  ```
  ```rust
  // when the error type is already `stacked_errors::Error` you can do this if it is
@@ -156,7 +156,7 @@
  ```rust
  // in commonly used functions you may want `_locationless` to avoid adding
  // on unnecessary information if the location is already being added on
- return Err(e.add_err_locationless(ErrorKind::TimeoutError)).stack_err(|| {
+ return Err(e.add_kind_locationless(ErrorKind::TimeoutError)).stack_err(|| {
      format!(
          "wait_for_ok(num_retries: {num_retries}, delay: {delay:?}) timeout, \
           last error stack was:"

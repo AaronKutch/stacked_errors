@@ -16,9 +16,11 @@ jobs:
       - name: Install Rust components
         run: |
           rustup set profile minimal
-          rustup install 1.69
+          rustup install 1.81
       - name: Run test suite
         run: |
+          cargo test --no-default-features
+          cargo test --release --no-default-features
           cargo test --all-features
           cargo test --release --all-features
 

@@ -1,13 +1,12 @@
 use alloc::{fmt, fmt::Debug};
-use core::panic::Location;
-use std::fmt::Display;
+use core::{fmt::Display, panic::Location};
 
 use crate::{error::StackedError, Error, ErrorKind};
 
 /// For implementing `Debug`, this wrapper makes strings use their `Display`
 /// impl rather than `Debug` impl
 pub struct DisplayStr<'a>(pub &'a str);
-impl<'a> Debug for DisplayStr<'a> {
+impl Debug for DisplayStr<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!("{}", self.0))
     }
@@ -23,7 +22,7 @@ impl<'a> Debug for DisplayStr<'a> {
 /// super_orchestrator-0.5.1/src/misc.rs"
 /// gets truncated to "super_orchestrator-0.5.1/src/misc.rs"
 pub struct DisplayShortLocation<'a>(pub &'a Location<'a>);
-impl<'a> Debug for DisplayShortLocation<'a> {
+impl Debug for DisplayShortLocation<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = self.0.file();
         #[cfg(not(windows))]

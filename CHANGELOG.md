@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0] - 2024-11-21
+### Changes
+- Updates the MSRV feature to 1.81, uses the `Error` in `core` feature to make this crate no-std.
+- There is now an "std" feature enabled by default for enabling `std::io::Error` impls
+- Renamed `from_err*` functions to `box_from` to emphasize that a boxing allocation is performed
+
+### Crate
+- Updated to `thiserror` 2.0
+
 ## [0.5.2] - 2024-04-18
 ### Fixes
 - Fixed several minor issues with the `ensure*` macros

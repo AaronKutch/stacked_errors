@@ -1,24 +1,26 @@
 [package]
 name = "stacked_errors"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
-# change the test suite version when changing this
-rust-version = "1.69"
+# Change the test suite version when changing this.
+rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
-categories = ["data-structures"]
-keywords = ["error", "error-handling", "stacked-errors"]
+categories = ["data-structures", "no-std"]
+keywords = ["error", "error-handling", "stacked-errors", "no_std"]
 description = "high level error propogation with programmed backtraces"
 
 [dependencies]
 thin-vec = "0.2"
-thiserror = "1"
+thiserror = "2"
 
 [dev-dependencies]
 ron = { version = "0.8", default-features = false }
 
 [features]
-default = []
+default = ["std"]
+# Enables some impls with `std::io::Error`
+std = []

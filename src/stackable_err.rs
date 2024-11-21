@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use crate::{Error, ErrorKind};
 
 /// Conversion to and addition to the stack of a
@@ -33,7 +35,7 @@ pub trait StackableErr {
 //
 // the current state of affairs is cumbersome when starting from a
 // `Into<ErrorKind>` wrapped with nothing, but we do not want to invoke the
-// `impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for
+// `impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for
 // core::result::Result<T, E>` impl on any `Into<ErrorKind>` types
 
 impl<T> StackableErr for core::result::Result<T, Error> {
@@ -67,7 +69,7 @@ impl<T> StackableErr for core::result::Result<T, Error> {
     }
 }
 
-impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
+impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
     type Output = core::result::Result<T, Error>;
 
     #[track_caller]
@@ -158,7 +160,7 @@ impl StackableErr for Error {
     }
 }
 
-//impl<E: std::error::Error + Send + Sync + 'static> StackableErr for E
+//impl<E: core::error::Error + Send + Sync + 'static> StackableErr for E
 
 // this causes refactor issues when `T` is changed, and we can't fix this due to
 // conflicts, and this might not be good in the sense that `K0` is not wrapped
@@ -170,11 +172,11 @@ impl<K0: Into<ErrorKind>> StackableErr for K0 {
     #[track_caller]
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         // avoid adding redundant locations
-        Err(Error::from_kind(self).add_err_locationless(f()))
+        Err(Error::from_kind(self).add_kind_locationless(f()))
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(Error::from_kind_locationless(self).add_err_locationless(f()))
+        Err(Error::from_kind_locationless(self).add_kind_locationless(f()))
     }
 
     #[track_caller]

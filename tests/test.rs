@@ -1,4 +1,4 @@
-use std::mem;
+use core::mem;
 
 use stacked_errors::{Error, ErrorKind, Result, StackableErr, StackedError};
 
@@ -31,7 +31,7 @@ fn error_debug() {
         .stack_locationless()
         .stack_err(|| "test")
         .stack_err_locationless(|| {
-            ErrorKind::from_err(ron::from_str::<bool>("invalid").unwrap_err())
+            ErrorKind::box_from(ron::from_str::<bool>("invalid").unwrap_err())
         })
         .stack_err_locationless(|| {
             ErrorKind::from_box(Box::new(ron::from_str::<bool>("invalid").unwrap_err()))
@@ -98,14 +98,14 @@ fn stacking() {
     let _: SpannedError = kind.downcast().unwrap();
 
     // I'm just using `ErrorKind` here for something that implements `Error`
-    let x = || Box::new(ErrorKind::StrError("box")) as Box<dyn std::error::Error + Sync + Send>;
+    let x = || Box::new(ErrorKind::StrError("box")) as Box<dyn core::error::Error + Sync + Send>;
     let y = || ErrorKind::StrError("err");
 
     assert_stack(Err(Error::new()), true, false, true);
     assert_stack(Err(Error::from_box(x())), false, true, true);
     assert_stack(Err(Error::from_box_locationless(x())), false, true, false);
-    assert_stack(Err(Error::from_err(y())), false, true, true);
-    assert_stack(Err(Error::from_err_locationless(y())), false, true, false);
+    assert_stack(Err(Error::box_from(y())), false, true, true);
+    assert_stack(Err(Error::box_from_locationless(y())), false, true, false);
     assert_stack(Err(Error::from_kind("s")), false, false, true);
     assert_stack(Err(Error::from_kind_locationless("s")), false, false, false);
     assert_stack(Err(Error::empty().add_kind("s")), false, false, true);
@@ -147,6 +147,38 @@ fn stacking() {
     let tmp = Error::empty();
     let tmp: core::result::Result<(), Error> = tmp.stack_locationless();
     assert!(tmp.unwrap_err().stack.is_empty());
+}
+
+#[test]
+fn boxing() {
+    use core::fmt;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Test<'a>(&'a str);
+    impl fmt::Display for Test<'_> {
+        fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            panic!()
+        }
+    }
+    impl core::error::Error for Test<'_> {}
+
+    let s = "hello";
+    let mut stack = Error::empty()
+        .add_box(Box::new(Test(s)))
+        .add_box_locationless(Box::new(Test(s)))
+        .box_and_add(Test(s))
+        .box_and_add_locationless(Test(s));
+    assert_eq!(stack.stack.len(), 4);
+    assert!(stack.stack[0].1.is_some());
+    assert!(stack.stack[1].1.is_none());
+    assert!(stack.stack[2].1.is_some());
+    assert!(stack.stack[3].1.is_none());
+    for _ in 0..4 {
+        assert_eq!(
+            stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
+            Test(s)
+        );
+    }
 }
 
 #[test]
