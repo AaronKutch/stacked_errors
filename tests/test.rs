@@ -160,9 +160,6 @@ fn boxing() {
             panic!()
         }
     }
-    #[cfg(feature = "std")]
-    impl<'a> std::error::Error for Test<'a> {}
-    #[cfg(not(feature = "std"))]
     impl<'a> core::error::Error for Test<'a> {}
 
     let s = "hello";

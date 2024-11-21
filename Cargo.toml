@@ -2,9 +2,8 @@
 name = "stacked_errors"
 version = "0.6.0"
 edition = "2021"
-# Note that this effectively needs to be 1.81 but only in no-std mode
 # Change the test suite version when changing this.
-rust-version = "1.69"
+rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
@@ -23,5 +22,5 @@ ron = { version = "0.8", default-features = false }
 
 [features]
 default = ["std"]
-# NOTE: the MSRV when this is disabled is 1.81
+# Enables some impls with `std::io::Error`
 std = []
