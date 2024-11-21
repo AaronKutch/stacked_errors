@@ -121,7 +121,8 @@ impl Error {
     /// `ok_or_else`.
     #[track_caller]
     pub fn add_box(mut self, e: Box<dyn core::error::Error + Send + Sync>) -> Self {
-        self.stack.push((ErrorKind::BoxedError(e), Some(Location::caller())));
+        self.stack
+            .push((ErrorKind::BoxedError(e), Some(Location::caller())));
         self
     }
 

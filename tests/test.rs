@@ -155,15 +155,19 @@ fn boxing() {
 
     #[derive(Debug, PartialEq, Eq)]
     struct Test<'a>(&'a str);
-    impl<'a> fmt::Display for Test<'a> {
+    impl fmt::Display for Test<'_> {
         fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
             panic!()
         }
     }
-    impl<'a> core::error::Error for Test<'a> {}
+    impl core::error::Error for Test<'_> {}
 
     let s = "hello";
-    let mut stack = Error::empty().add_box(Box::new(Test(s))).add_box_locationless(Box::new(Test(s))).box_and_add(Test(s)).box_and_add_locationless(Test(s));
+    let mut stack = Error::empty()
+        .add_box(Box::new(Test(s)))
+        .add_box_locationless(Box::new(Test(s)))
+        .box_and_add(Test(s))
+        .box_and_add_locationless(Test(s));
     assert_eq!(stack.stack.len(), 4);
     assert!(stack.stack[0].1.is_some());
     assert!(stack.stack[1].1.is_none());
