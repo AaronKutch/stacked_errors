@@ -56,12 +56,12 @@ impl Error {
     }
 
     /// Returns an error stack with a `BoxedError` around `e`, and location
-    /// info.
+    /// info. [Error::from_kind] is more efficient and should be used instead if
+    /// the type implements `Into<ErrorKind>`.
     #[track_caller]
     pub fn from_err<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
-        let l = Location::caller();
         Self {
-            stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), Some(l))],
+            stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), Some(Location::caller()))],
         }
     }
 
@@ -75,9 +75,8 @@ impl Error {
     /// Returns an error stack with just `kind`.
     #[track_caller]
     pub fn from_kind<K: Into<ErrorKind>>(kind: K) -> Self {
-        let l = Location::caller();
         Self {
-            stack: thin_vec![(kind.into(), Some(l))],
+            stack: thin_vec![(kind.into(), Some(Location::caller()))],
         }
     }
 
@@ -112,6 +111,27 @@ impl Error {
     /// Same as [Error::add_kind] but without location.
     pub fn add_kind_locationless<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
         self.stack.push((kind.into(), None));
+        self
+    }
+
+    /// Boxes a type implementing `core::error::Error + Send + Sync + 'static`
+    /// and adds it with location data to the stack. [Error::add_kind] is
+    /// preferred if possible, this is a shorthand for
+    /// `stack.add_kind(ErrorKind::from_box(Box::new(e)))` where the error does
+    /// not implement `Into<ErrorKind>` and needs to be boxed.
+    #[track_caller]
+    pub fn box_and_add<E: core::error::Error + Send + Sync + 'static>(mut self, e: E) -> Self {
+        self.stack
+            .push((ErrorKind::BoxedError(Box::new(e)), Some(Location::caller())));
+        self
+    }
+
+    /// Same as [Error::box_and_add] but without location.
+    pub fn box_and_add_locationless<E: core::error::Error + Send + Sync + 'static>(
+        mut self,
+        e: E,
+    ) -> Self {
+        self.stack.push((ErrorKind::BoxedError(Box::new(e)), None));
         self
     }
 

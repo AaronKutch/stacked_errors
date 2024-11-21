@@ -49,10 +49,14 @@ use alloc::boxed::Box;
 use ErrorKind::*;
 
 impl ErrorKind {
+    /// Puts a generic error into `ErrorKind::BoxedError(Box::new(e))`. Note
+    /// that `Into<ErrorKind>` should preferably be used instead if the impl
+    /// exists.
     pub fn from_err<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
         ErrorKind::BoxedError(Box::new(e))
     }
 
+    /// Creates a `ErrorKind::BoxedError` from `e`
     pub fn from_box(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
         ErrorKind::BoxedError(e)
     }

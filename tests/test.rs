@@ -1,4 +1,4 @@
-use std::mem;
+use core::mem;
 
 use stacked_errors::{Error, ErrorKind, Result, StackableErr, StackedError};
 
@@ -147,6 +147,40 @@ fn stacking() {
     let tmp = Error::empty();
     let tmp: core::result::Result<(), Error> = tmp.stack_locationless();
     assert!(tmp.unwrap_err().stack.is_empty());
+}
+
+#[test]
+fn boxing() {
+    use core::fmt;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Test<'a>(&'a str);
+    impl<'a> fmt::Display for Test<'a> {
+        fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            panic!()
+        }
+    }
+    #[cfg(feature = "std")]
+    impl<'a> std::error::Error for Test<'a> {}
+    #[cfg(not(feature = "std"))]
+    impl<'a> core::error::Error for Test<'a> {}
+
+    let s = "hello";
+    let e0 = Test(s);
+    let e1 = Test(s);
+    let _ = e0.0;
+    let mut stack = Error::empty().box_and_add(e0).box_and_add_locationless(e1);
+    assert_eq!(stack.stack.len(), 2);
+    assert!(stack.stack[0].1.is_some());
+    assert!(stack.stack[1].1.is_none());
+    assert_eq!(
+        stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
+        Test(s)
+    );
+    assert_eq!(
+        stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
+        Test(s)
+    );
 }
 
 #[test]
