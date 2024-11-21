@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0] - 2024-11-21
+### Changes
+- Use the `Error` in `core` feature to make this crate no-std.
+- There is now an "std" feature enabled by default (with the original MSRV of 1.69).
+  When disabled for no-std mode, Rust 1.81 is required.
+
+### Crate
+- Updated to `thiserror` 2.0
+
 ## [0.5.2] - 2024-04-18
 ### Fixes
 - Fixed several minor issues with the `ensure*` macros

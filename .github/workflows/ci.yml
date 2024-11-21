@@ -16,6 +16,23 @@ jobs:
       - name: Install Rust components
         run: |
           rustup set profile minimal
+          rustup install 1.81
+      - name: Run test suite
+        run: |
+          cargo test --no-default-features
+          cargo test --release --no-default-features
+
+  # Test that the default MSRV works with the "std" feature enabled
+  test_suite_std_msrv:
+    name: Test suite
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust components
+        run: |
+          rustup set profile minimal
           rustup install 1.69
       - name: Run test suite
         run: |

@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+
 use crate::{Error, ErrorKind};
 
 /// Conversion to and addition to the stack of a
@@ -33,7 +35,7 @@ pub trait StackableErr {
 //
 // the current state of affairs is cumbersome when starting from a
 // `Into<ErrorKind>` wrapped with nothing, but we do not want to invoke the
-// `impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for
+// `impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for
 // core::result::Result<T, E>` impl on any `Into<ErrorKind>` types
 
 impl<T> StackableErr for core::result::Result<T, Error> {
@@ -67,7 +69,7 @@ impl<T> StackableErr for core::result::Result<T, Error> {
     }
 }
 
-impl<T, E: std::error::Error + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
+impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
     type Output = core::result::Result<T, Error>;
 
     #[track_caller]
@@ -158,7 +160,7 @@ impl StackableErr for Error {
     }
 }
 
-//impl<E: std::error::Error + Send + Sync + 'static> StackableErr for E
+//impl<E: core::error::Error + Send + Sync + 'static> StackableErr for E
 
 // this causes refactor issues when `T` is changed, and we can't fix this due to
 // conflicts, and this might not be good in the sense that `K0` is not wrapped

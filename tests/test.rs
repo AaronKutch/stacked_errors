@@ -98,7 +98,7 @@ fn stacking() {
     let _: SpannedError = kind.downcast().unwrap();
 
     // I'm just using `ErrorKind` here for something that implements `Error`
-    let x = || Box::new(ErrorKind::StrError("box")) as Box<dyn std::error::Error + Sync + Send>;
+    let x = || Box::new(ErrorKind::StrError("box")) as Box<dyn core::error::Error + Sync + Send>;
     let y = || ErrorKind::StrError("err");
 
     assert_stack(Err(Error::new()), true, false, true);

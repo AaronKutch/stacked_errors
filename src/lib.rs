@@ -162,21 +162,16 @@
 //! })
 //! ```
 
-// TODO when https://github.com/rust-lang/rust/issues/103765 is stabilized
-// we can make a large subset as no_std
-//#![no_std]
-//#[cfg(feature = "std")]
-//extern crate std;
+#![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 mod ensure;
 mod error;
-/// This is an experimental errors crate.
-/// Note: you should probably use `default-features = false` in your
-/// `Cargo.toml`
 mod error_kind;
 mod fmt;
 mod stackable_err;
+
+use alloc::boxed::Box;
 
 pub use error::{Error, StackedError};
 pub use error_kind::ErrorKind;
@@ -251,7 +246,9 @@ type X1 = &'static str;
 x!(StrError X1);
 type X2 = alloc::string::String;
 x!(StringError X2);
+#[cfg(feature = "std")]
 type X3 = std::io::Error;
+#[cfg(feature = "std")]
 x!(StdIoError X3);
 type X4 = alloc::string::FromUtf8Error;
 x!(FromUtf8Error X4);
@@ -263,7 +260,7 @@ type X11 = core::num::ParseFloatError;
 x!(ParseFloatError X11);
 type X12 = core::num::TryFromIntError;
 x!(TryFromIntError X12);
-type X13 = Box<dyn std::error::Error + Send + Sync>;
+type X13 = Box<dyn core::error::Error + Send + Sync>;
 x!(BoxedError X13);
 type X14 = alloc::borrow::Cow<'static, str>;
 x!(CowStrError X14);

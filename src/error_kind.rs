@@ -26,9 +26,10 @@ pub enum ErrorKind {
     #[error("{0}")]
     CowStrError(alloc::borrow::Cow<'static, str>),
     #[error("{0}")]
-    BoxedError(Box<dyn std::error::Error + Send + Sync>),
+    BoxedError(Box<dyn core::error::Error + Send + Sync>),
     #[error("{0}")]
     TryFromIntError(core::num::TryFromIntError),
+    #[cfg(feature = "std")]
     #[error("{0}")]
     StdIoError(std::io::Error),
     #[error("{0}")]
@@ -43,21 +44,23 @@ pub enum ErrorKind {
     ParseFloatError(core::num::ParseFloatError),
 }
 
+use alloc::boxed::Box;
+
 use ErrorKind::*;
 
 impl ErrorKind {
-    pub fn from_err<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
+    pub fn from_err<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
         ErrorKind::BoxedError(Box::new(e))
     }
 
-    pub fn from_box(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+    pub fn from_box(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
         ErrorKind::BoxedError(e)
     }
 
     /// Attempts to downcast from a `ErrorKind::BoxedError` to a concrete type.
     /// Returns the input in an `Err` if it was not an `ErrorKind::BoxedError`
     /// or the box would not downcast.
-    pub fn downcast<E: std::error::Error + 'static>(self) -> Result<E, Self> {
+    pub fn downcast<E: core::error::Error + 'static>(self) -> Result<E, Self> {
         if let BoxedError(boxed_err) = self {
             match boxed_err.downcast() {
                 Ok(err) => Ok(*err),

@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::panic::Location;
 
 use thin_vec::{thin_vec, ThinVec};
@@ -19,10 +20,10 @@ use crate::ErrorKind;
 /// Note that due to trait conflicts and not wanting users to accidentally
 /// wastefully embed `stacked_errors::Error` in a `BoxedErr` of another
 /// `stacked_errors::Error`, `stacked_errors::Error` itself does not actually
-/// implement [std::error::Error]. This does not pose a problem in most cases
+/// implement [core::error::Error]. This does not pose a problem in most cases
 /// since it is intended to be the highest level of error that is directly
 /// returned or panicked on. However, if a user needs the end result struct to
-/// implement [std::error::Error], they can use the
+/// implement [core::error::Error], they can use the
 /// [StackedError](crate::StackedError) wrapper.
 pub struct Error {
     /// Using a ThinVec has advantages such as taking as little space as
@@ -33,7 +34,7 @@ pub struct Error {
 }
 
 /// Wraps around [stacked_errors::Error](crate::Error) to implement
-/// [std::error::Error], since [stacked_errors::Error](crate::Error) itself
+/// [core::error::Error], since [stacked_errors::Error](crate::Error) itself
 /// cannot implement the trait.
 #[derive(Debug, thiserror::Error)]
 pub struct StackedError(pub Error);
@@ -57,7 +58,7 @@ impl Error {
     /// Returns an error stack with a `BoxedError` around `e`, and location
     /// info.
     #[track_caller]
-    pub fn from_err<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
+    pub fn from_err<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
         let l = Location::caller();
         Self {
             stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), Some(l))],
@@ -65,7 +66,7 @@ impl Error {
     }
 
     /// Same as [Error::from_err] but without location.
-    pub fn from_err_locationless<E: std::error::Error + Send + Sync + 'static>(e: E) -> Self {
+    pub fn from_err_locationless<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
         Self {
             stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), None)],
         }
@@ -89,12 +90,12 @@ impl Error {
 
     /// Returns an error stack with just a `BoxedErr`.
     #[track_caller]
-    pub fn from_box(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+    pub fn from_box(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
         Self::from_kind(ErrorKind::BoxedError(e))
     }
 
     /// Same as [Error::from_box] but without location.
-    pub fn from_box_locationless(e: Box<dyn std::error::Error + Send + Sync>) -> Self {
+    pub fn from_box_locationless(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
         Self::from_kind_locationless(ErrorKind::BoxedError(e))
     }
 

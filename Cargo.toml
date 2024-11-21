@@ -1,24 +1,27 @@
 [package]
 name = "stacked_errors"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
-# change the test suite version when changing this
+# Note that this effectively needs to be 1.81 but only in no-std mode
+# Change the test suite version when changing this.
 rust-version = "1.69"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
-categories = ["data-structures"]
-keywords = ["error", "error-handling", "stacked-errors"]
+categories = ["data-structures", "no-std"]
+keywords = ["error", "error-handling", "stacked-errors", "no_std"]
 description = "high level error propogation with programmed backtraces"
 
 [dependencies]
 thin-vec = "0.2"
-thiserror = "1"
+thiserror = "2"
 
 [dev-dependencies]
 ron = { version = "0.8", default-features = false }
 
 [features]
-default = []
+default = ["std"]
+# NOTE: the MSRV when this is disabled is 1.81
+std = []
