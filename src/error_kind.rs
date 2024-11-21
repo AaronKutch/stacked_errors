@@ -52,7 +52,7 @@ impl ErrorKind {
     /// Puts a generic error into `ErrorKind::BoxedError(Box::new(e))`. Note
     /// that `Into<ErrorKind>` should preferably be used instead if the impl
     /// exists.
-    pub fn from_err<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
+    pub fn box_from<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
         ErrorKind::BoxedError(Box::new(e))
     }
 

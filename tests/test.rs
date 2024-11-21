@@ -31,7 +31,7 @@ fn error_debug() {
         .stack_locationless()
         .stack_err(|| "test")
         .stack_err_locationless(|| {
-            ErrorKind::from_err(ron::from_str::<bool>("invalid").unwrap_err())
+            ErrorKind::box_from(ron::from_str::<bool>("invalid").unwrap_err())
         })
         .stack_err_locationless(|| {
             ErrorKind::from_box(Box::new(ron::from_str::<bool>("invalid").unwrap_err()))
@@ -104,8 +104,8 @@ fn stacking() {
     assert_stack(Err(Error::new()), true, false, true);
     assert_stack(Err(Error::from_box(x())), false, true, true);
     assert_stack(Err(Error::from_box_locationless(x())), false, true, false);
-    assert_stack(Err(Error::from_err(y())), false, true, true);
-    assert_stack(Err(Error::from_err_locationless(y())), false, true, false);
+    assert_stack(Err(Error::box_from(y())), false, true, true);
+    assert_stack(Err(Error::box_from_locationless(y())), false, true, false);
     assert_stack(Err(Error::from_kind("s")), false, false, true);
     assert_stack(Err(Error::from_kind_locationless("s")), false, false, false);
     assert_stack(Err(Error::empty().add_kind("s")), false, false, true);
@@ -166,21 +166,18 @@ fn boxing() {
     impl<'a> core::error::Error for Test<'a> {}
 
     let s = "hello";
-    let e0 = Test(s);
-    let e1 = Test(s);
-    let _ = e0.0;
-    let mut stack = Error::empty().box_and_add(e0).box_and_add_locationless(e1);
-    assert_eq!(stack.stack.len(), 2);
+    let mut stack = Error::empty().add_box(Box::new(Test(s))).add_box_locationless(Box::new(Test(s))).box_and_add(Test(s)).box_and_add_locationless(Test(s));
+    assert_eq!(stack.stack.len(), 4);
     assert!(stack.stack[0].1.is_some());
     assert!(stack.stack[1].1.is_none());
-    assert_eq!(
-        stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
-        Test(s)
-    );
-    assert_eq!(
-        stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
-        Test(s)
-    );
+    assert!(stack.stack[2].1.is_some());
+    assert!(stack.stack[3].1.is_none());
+    for _ in 0..4 {
+        assert_eq!(
+            stack.stack.pop().unwrap().0.downcast::<Test<'_>>().unwrap(),
+            Test(s)
+        );
+    }
 }
 
 #[test]

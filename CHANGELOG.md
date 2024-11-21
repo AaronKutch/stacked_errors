@@ -5,6 +5,7 @@
 - Use the `Error` in `core` feature to make this crate no-std.
 - There is now an "std" feature enabled by default (with the original MSRV of 1.69).
   When disabled for no-std mode, Rust 1.81 is required.
+- Renamed `from_err*` functions to `box_from` to emphasize that a boxing allocation is performed
 
 ### Crate
 - Updated to `thiserror` 2.0

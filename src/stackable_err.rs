@@ -172,11 +172,11 @@ impl<K0: Into<ErrorKind>> StackableErr for K0 {
     #[track_caller]
     fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
         // avoid adding redundant locations
-        Err(Error::from_kind(self).add_err_locationless(f()))
+        Err(Error::from_kind(self).add_kind_locationless(f()))
     }
 
     fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(Error::from_kind_locationless(self).add_err_locationless(f()))
+        Err(Error::from_kind_locationless(self).add_kind_locationless(f()))
     }
 
     #[track_caller]
