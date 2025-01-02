@@ -73,10 +73,12 @@ impl Debug for Error {
                     f.write_fmt(format_args!("{location:?},\n"))?;
                 }
             }
-            if is_last {
-                f.write_fmt(format_args!("{}\n", e.get_err()))?;
-            } else {
-                f.write_fmt(format_args!("{},\n", e.get_err()))?;
+            if !is_unit_err {
+                if is_last {
+                    f.write_fmt(format_args!("{}\n", e.get_err()))?;
+                } else {
+                    f.write_fmt(format_args!("{},\n", e.get_err()))?;
+                }
             }
         }
         f.write_fmt(format_args!("] }}"))

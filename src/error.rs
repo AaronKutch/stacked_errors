@@ -176,46 +176,43 @@ impl Error {
         }
     }
 
-    /// Returns an error stack with just `kind`. The `impl From<_> for Error`
-    /// implementations can usually be used in place of this.
+    /// Only pushes `track_caller` location to the stack
     #[track_caller]
-    pub fn stack_err<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
+    pub fn push(&mut self) {
+        self.push_err(UnitError {})
+    }
+
+    /// Only adds `track_caller` location to the stack
+    #[track_caller]
+    pub fn add(self) -> Self {
+        self.add_err(UnitError {})
+    }
+
+    /// Pushes error `e` with location to the stack
+    #[track_caller]
+    pub fn push_err<E: Display + Send + Sync + 'static>(&mut self, e: E) {
         self.stack.push(ErrorItem::new(e, Some(Location::caller())));
+    }
+
+    /// Adds error `e` with location to the stack
+    #[track_caller]
+    pub fn add_err<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
+        self.push_err(e);
         self
     }
 
-    #[track_caller]
-    pub(crate) fn stack_err_inner<E: Display + Send + Sync + 'static>(&mut self, e: E) {
-        self.stack.push(ErrorItem::new(e, Some(Location::caller())));
-    }
-
-    pub(crate) fn stack_err_locationless_inner<E: Display + Send + Sync + 'static>(
+    /// Pushes error `e` without location information to the stack
+    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(
         &mut self,
         e: E,
     ) {
         self.stack.push(ErrorItem::new(e, None));
     }
 
-    /// Returns an error stack with just `kind`. The `impl From<_> for Error`
-    /// implementations can usually be used in place of this.
-    pub fn stack_err_locationless<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
-        self.stack.push(ErrorItem::new(e, None));
+    /// Adds error `e` without location information to the stack
+    pub fn add_err_locationless<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
+        self.push_err_locationless(e);
         self
-    }
-
-    /// Only pushes `track_caller` location to the stack
-    #[track_caller]
-    pub fn stack(self) -> Self {
-        self.stack_err(UnitError {})
-    }
-
-    #[track_caller]
-    pub(crate) fn stack_inner(&mut self) {
-        self.stack_err_inner(UnitError {})
-    }
-
-    pub(crate) fn stack_locationless_inner(&mut self) {
-        self.stack_err_locationless_inner(UnitError {})
     }
 
     /// Moves the stack of `other` onto `self`

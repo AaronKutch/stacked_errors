@@ -36,11 +36,12 @@ fn error_debug() {
     assert_eq!(
         format!("{:?}", tmp),
         r#"Err(Error { stack: [
-BoxedError(SpannedError { code: ExpectedBoolean, position: Position { line: 1, col: 1 } }),
-BoxedError(SpannedError { code: ExpectedBoolean, position: Position { line: 1, col: 1 } }),
+1:1: Expected boolean,
+1:1: Expected boolean,
 Location { file: "tests/test.rs", line: 32, col: 10 },
-test
+test,
 Location { file: "tests/test.rs", line: 30, col: 10 },
+UnitError,
 Location { file: "tests/test.rs", line: 9, col: 13 },
 hello
 ] })"#
@@ -96,13 +97,13 @@ fn stacking() {
     assert_stack(Err(Error::new()), true, true);
     assert_stack(Err(Error::from_err("s")), false, true);
     assert_stack(Err(Error::from_err_locationless("s")), false, false);
-    assert_stack(Err(Error::empty().stack_err("s")), false, true);
+    assert_stack(Err(Error::empty().add_err("s")), false, true);
     assert_stack(
-        Err(Error::empty().stack_err_locationless("s")),
+        Err(Error::empty().add_err_locationless("s")),
         false,
         false,
     );
-    assert_stack(Err(Error::empty().stack()), true, true);
+    assert_stack(Err(Error::empty().add()), true, true);
 
     assert_stack(Err(Error::empty()).stack_err("e"), false, true);
     assert_stack(
@@ -122,7 +123,7 @@ fn stacking() {
     let tmp: core::result::Result<u8, Error> = tmp.stack();
     assert_eq!(tmp.unwrap_err().iter().len(), 0);
 
-    /*assert_stack(Error::empty().stack_err("e"), false, true);
+    assert_stack(Error::empty().stack_err("e"), false, true);
     assert_stack(
         Error::empty().stack_err_locationless("e"),
         false,
@@ -131,7 +132,7 @@ fn stacking() {
     assert_stack(Error::empty().stack(), true, true);
     let tmp = Error::empty();
     let tmp: core::result::Result<(), Error> = tmp.stack_locationless();
-    assert!(tmp.unwrap_err().stack.is_empty());*/
+    assert_eq!(tmp.unwrap_err().iter().len(), 0);
 }
 
 #[test]
