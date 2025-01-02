@@ -1,3 +1,19 @@
+/// Equivalent to `return Err(Error::from_err(format_args!(...)))` if a string
+/// literal, `return Err(Error::from_err(expr))` if a single expression, or
+/// `return Err(Error::from_err(format!(...)))` otherwise.
+#[macro_export]
+macro_rules! bail {
+    ($msg:literal $(,)?) => {
+        return Err($crate::__private::format_err($crate::__private::format_args!($msg)));
+    };
+    ($err:expr $(,)?) => {
+        return Err($crate::Error::from_err($err));
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        return Err($crate::Error::from_err($crate::__private::format!($fmt, $($arg)*)));
+    };
+}
+
 /// Asserts that a boolean expression is `true` at runtime, returning a
 /// stackable error otherwise.
 ///
@@ -23,7 +39,7 @@
 /// assert_eq!(
 ///     format!("{}", ex(false, true).unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 10, col: 5 },
+/// Location { file: "src/macros.rs", line: 10, col: 5 },
 /// ensure(val0) -> assertion failed
 /// ] }"#
 /// );
@@ -31,7 +47,7 @@
 /// assert_eq!(
 ///     format!("{}", ex(true, false).unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 12, col: 5 },
+/// Location { file: "src/macros.rs", line: 12, col: 5 },
 /// val1 was false
 /// ] }"#
 /// );
@@ -60,7 +76,7 @@ macro_rules! ensure {
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are unequal. A custom message can be
-/// attached that is used as an [Error::from_kind](crate::Error::from_kind)
+/// attached that is used as an [Error::from_err](crate::Error::from_err)
 /// argument.
 ///
 /// ```
@@ -81,7 +97,7 @@ macro_rules! ensure {
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 10, col: 5 },
+/// Location { file: "src/macros.rs", line: 10, col: 5 },
 /// ensure_eq(
 ///  lhs: 8
 ///  rhs: 0
@@ -92,7 +108,7 @@ macro_rules! ensure {
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 12, col: 5 },
+/// Location { file: "src/macros.rs", line: 12, col: 5 },
 /// val1 was "other"
 /// ] }"#
 /// );
@@ -131,7 +147,7 @@ macro_rules! ensure_eq {
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are equal. A custom message can be
-/// attached that is used as an [Error::from_kind](crate::Error::from_kind)
+/// attached that is used as an [Error::from_err](crate::Error::from_err)
 /// argument.
 ///
 /// ```
@@ -152,7 +168,7 @@ macro_rules! ensure_eq {
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 10, col: 5 },
+/// Location { file: "src/macros.rs", line: 10, col: 5 },
 /// ensure_ne(
 ///  lhs: 8
 ///  rhs: 8
@@ -163,7 +179,7 @@ macro_rules! ensure_eq {
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
 ///     r#"Error { stack: [
-/// Location { file: "src/ensure.rs", line: 12, col: 5 },
+/// Location { file: "src/macros.rs", line: 12, col: 5 },
 /// val1 was "test"
 /// ] }"#
 /// );

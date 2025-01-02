@@ -96,9 +96,8 @@
 //!         // just call `StackableErr::stack` so that just the location is
 //!         // pushed on the stack. We can then use `?` directly.
 //!
-//!         let _: () = ron::from_str("invalid").stack_err_with(|| {
-//!             format!("parsing error with \"{s}\"")
-//!         })?;
+//!         let _: () = ron::from_str("invalid")
+//!             .stack_err_with(|| format!("parsing error with \"{s}\""))?;
 //!     }
 //!     Ok(42)
 //! }
@@ -138,8 +137,8 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 52, col: 22 },
-//! Location { file: "src/lib.rs", line: 49, col: 10 },
+//! Location { file: "src/lib.rs", line: 55, col: 22 },
+//! Location { file: "src/lib.rs", line: 48, col: 10 },
 //! error from innermost("return error")
 //! Location { file: "src/lib.rs", line: 22, col: 20 },
 //! bottom level `StrErr`
@@ -150,12 +149,12 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 52, col: 22 },
-//! Location { file: "src/lib.rs", line: 49, col: 10 },
+//! Location { file: "src/lib.rs", line: 55, col: 22 },
+//! Location { file: "src/lib.rs", line: 48, col: 10 },
 //! error from innermost("parse invalid")
+//! Location { file: "src/lib.rs", line: 34, col: 14 },
 //! parsing error with "parse invalid"
-//! Location { file: "src/lib.rs", line: 33, col: 42 },
-//! BoxedError(SpannedError { code: ExpectedUnit, position: Position { line: 1, col: 1 } }),
+//! 1:1: Expected unit
 //! ] })"#
 //! );
 //! ```
@@ -174,9 +173,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
-mod macros;
 mod error;
 mod fmt;
+mod macros;
 mod special;
 mod stackable_err;
 
@@ -194,7 +193,19 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[doc(hidden)]
 pub mod __private {
     pub use alloc::format;
-    pub use core::{concat, stringify};
+    pub use core::{concat, format_args, stringify};
+
+    pub fn format_err(args: core::fmt::Arguments<'_>) -> crate::Error {
+        let fmt_arguments_as_str = args.as_str();
+
+        if let Some(message) = fmt_arguments_as_str {
+            // &'static str
+            crate::Error::from_err(message)
+        } else {
+            // interpolation
+            crate::Error::from_err(alloc::fmt::format(args))
+        }
+    }
 }
 
 macro_rules! x {

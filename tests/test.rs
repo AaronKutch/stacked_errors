@@ -1,6 +1,8 @@
 use core::mem;
 
-use stacked_errors::{Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError};
+use stacked_errors::{
+    bail, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
+};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
@@ -36,12 +38,12 @@ fn error_debug() {
     assert_eq!(
         format!("{:?}", tmp),
         r#"Err(Error { stack: [
-1:1: Expected boolean,
-1:1: Expected boolean,
+1:1: Expected boolean
+1:1: Expected boolean
+Location { file: "tests/test.rs", line: 34, col: 10 },
+test
 Location { file: "tests/test.rs", line: 32, col: 10 },
-test,
-Location { file: "tests/test.rs", line: 30, col: 10 },
-Location { file: "tests/test.rs", line: 9, col: 13 },
+Location { file: "tests/test.rs", line: 11, col: 13 },
 hello
 ] })"#
             .to_owned()
@@ -137,4 +139,28 @@ fn debug_and_display() {
         "StackedError(Error { stack: [\nhello\n] })"
     );
     assert_eq!(format!("{x}"), "StackedError(Error { stack: [\nhello\n] })");
+}
+
+#[test]
+fn test_bail() {
+    let f = || -> Result<()> { bail!("test") };
+    let tmp = f().unwrap_err();
+    let x = tmp.iter().next().unwrap();
+    assert_eq!(*x.downcast_ref::<&str>().unwrap(), "test");
+
+    let f = || -> Result<()> {
+        let x = 5u64;
+        bail!("test {x}")
+    };
+    let tmp = f().unwrap_err();
+    let x = tmp.iter().next().unwrap();
+    assert_eq!(*x.downcast_ref::<String>().unwrap(), "test 5");
+
+    let f = || -> Result<()> {
+        let x = 5u64;
+        bail!("test {}", x)
+    };
+    let tmp = f().unwrap_err();
+    let x = tmp.iter().next().unwrap();
+    assert_eq!(*x.downcast_ref::<String>().unwrap(), "test 5");
 }
