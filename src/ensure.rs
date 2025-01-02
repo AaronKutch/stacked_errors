@@ -105,7 +105,7 @@ macro_rules! ensure_eq {
             (lhs, rhs) => {
                 // use the double inversion because we are relying on `PartialEq`
                 if !(*lhs == *rhs) {
-                    return Err($crate::Error::from_kind($crate::__private::format!(
+                    return Err($crate::Error::from_err($crate::__private::format!(
                         "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
                         lhs,
                         rhs,
@@ -118,7 +118,7 @@ macro_rules! ensure_eq {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs == *rhs) {
-                    return Err($crate::Error::from_kind($msg))
+                    return Err($crate::Error::from_err($msg))
                 }
             }
         }
@@ -176,7 +176,7 @@ macro_rules! ensure_ne {
             (lhs, rhs) => {
                 // use the double inversion because we are relying on `PartialEq`
                 if !(*lhs != *rhs) {
-                    return Err($crate::Error::from_kind($crate::__private::format!(
+                    return Err($crate::Error::from_err($crate::__private::format!(
                         "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
                         lhs,
                         rhs,
@@ -189,7 +189,7 @@ macro_rules! ensure_ne {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs != *rhs) {
-                    return Err($crate::Error::from_kind($msg))
+                    return Err($crate::Error::from_err($msg))
                 }
             }
         }

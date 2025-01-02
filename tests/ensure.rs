@@ -1,4 +1,4 @@
-use stacked_errors::{ensure_eq, ensure_ne, ErrorKind, Result};
+use stacked_errors::{ensure_eq, ensure_ne, Result, UnitError};
 
 // there are also tests in the doc tests
 #[test]
@@ -55,7 +55,7 @@ fn ensure_test() {
         ensure_eq!(String::new(), "");
         ensure_ne!("1".to_owned(), "2");
         let () = ensure_eq!(String::new(), "", "hello");
-        ensure_ne!("1".to_owned(), "2", ErrorKind::UnitError);
+        ensure_ne!("1".to_owned(), "2", UnitError {});
         Ok(0)
     }
     assert_eq!(successes().unwrap(), 0);

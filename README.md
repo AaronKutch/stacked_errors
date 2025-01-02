@@ -1,6 +1,7 @@
 # Stacked Errors
 
- A crate for high level error propogation with programmed backtraces.
+ A crate for high level error propogation with software controlled backtraces
+ that are entirely independent of the `RUST_BACKTRACE` system.
 
  In Rust development, major crates will often have their own error enums that
  work well in their own specialized domain, but when orchestrating many

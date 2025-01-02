@@ -11,11 +11,12 @@ repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
 categories = ["data-structures", "no-std"]
 keywords = ["error", "error-handling", "stacked-errors", "no_std"]
-description = "high level error propogation with programmed backtraces"
+description = "high level error propogation with software controlled backtraces"
 
 [dependencies]
 thin-vec = "0.2"
 thiserror = "2"
+smallbox = { version = "0.8", default-features = false }
 
 [dev-dependencies]
 ron = { version = "0.8", default-features = false }

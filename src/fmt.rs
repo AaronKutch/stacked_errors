@@ -1,7 +1,10 @@
 use alloc::{fmt, fmt::Debug};
 use core::{fmt::Display, panic::Location};
 
-use crate::{error::StackedError, Error, ErrorKind};
+use crate::{
+    error::{StackedError, StackedErrorDowncast},
+    Error, UnitError,
+};
 
 /// For implementing `Debug`, this wrapper makes strings use their `Display`
 /// impl rather than `Debug` impl
@@ -59,22 +62,21 @@ impl Debug for Error {
         // in reverse order of a typical stack, I don't want to have to scroll up to see
         // the more specific errors
         f.write_fmt(format_args!("Error {{ stack: [\n"))?;
-        for (error, location) in self.stack.iter().rev() {
-            if let Some(location) = location {
+        for (i, e) in self.iter().enumerate().rev() {
+            let is_unit_err = e.downcast_ref::<UnitError>().is_some();
+            let is_last = i == 0;
+            if let Some(location) = e.get_location() {
                 let location = DisplayShortLocation(location);
-                f.write_fmt(format_args!("{location:?},\n"))?;
+                if is_last && is_unit_err {
+                    f.write_fmt(format_args!("{location:?}\n"))?;
+                } else {
+                    f.write_fmt(format_args!("{location:?},\n"))?;
+                }
             }
-            match error {
-                ErrorKind::UnitError => (),
-                ErrorKind::StrError(s) => {
-                    f.write_fmt(format_args!("{s}\n"))?;
-                }
-                ErrorKind::StringError(s) => {
-                    f.write_fmt(format_args!("{s}\n"))?;
-                }
-                _ => {
-                    f.write_fmt(format_args!("{error:?},\n"))?;
-                }
+            if is_last {
+                f.write_fmt(format_args!("{}\n", e.get_err()))?;
+            } else {
+                f.write_fmt(format_args!("{},\n", e.get_err()))?;
             }
         }
         f.write_fmt(format_args!("] }}"))

@@ -1,4 +1,5 @@
-//! A crate for high level error propogation with programmed backtraces.
+//! A crate for high level error propogation with software controlled backtraces
+//! that are entirely independent of the `RUST_BACKTRACE` system.
 //!
 //! In Rust development, major crates will often have their own error enums that
 //! work well in their own specialized domain, but when orchestrating many
@@ -167,15 +168,15 @@
 extern crate alloc;
 mod ensure;
 mod error;
-mod error_kind;
 mod fmt;
+mod special;
 mod stackable_err;
 
 use alloc::boxed::Box;
 
-pub use error::{Error, StackedError};
-pub use error_kind::ErrorKind;
+pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast};
 pub use fmt::{DisplayShortLocation, DisplayStr};
+pub use special::*;
 pub use stackable_err::StackableErr;
 
 /// A shorthand for [core::result::Result<T, stacked_errors::Error>]
@@ -188,82 +189,41 @@ pub mod __private {
     pub use core::{concat, stringify};
 }
 
-macro_rules! unit_x {
-    ($kind:ident $x:ty) => {
-        impl From<$x> for ErrorKind {
-            fn from(_e: $x) -> Self {
-                Self::$kind
-            }
-        }
-
-        impl From<$x> for Error {
-            #[track_caller]
-            fn from(e: $x) -> Self {
-                Self::from_kind(e)
-            }
-        }
-    };
-}
-
 macro_rules! x {
-    ($kind:ident $x:ty) => {
-        impl From<$x> for ErrorKind {
-            fn from(e: $x) -> Self {
-                Self::$kind(e)
-            }
-        }
-
+    ($x:ty) => {
         impl From<$x> for Error {
             #[track_caller]
             fn from(e: $x) -> Self {
-                Self::from_kind(e)
+                Self::from_err(e)
             }
         }
     };
 }
 
-#[allow(unused_macros)]
-macro_rules! x_box {
-    ($kind:ident $x:ty) => {
-        impl From<$x> for ErrorKind {
-            fn from(e: $x) -> Self {
-                Self::$kind(Box::new(e))
-            }
-        }
-
-        impl From<$x> for Error {
-            #[track_caller]
-            fn from(e: $x) -> Self {
-                Self::from_kind(e)
-            }
-        }
-    };
-}
-
-type X0 = ();
-unit_x!(UnitError X0);
 type X1 = &'static str;
-x!(StrError X1);
+x!(X1);
 type X2 = alloc::string::String;
-x!(StringError X2);
+x!(X2);
 #[cfg(feature = "std")]
 type X3 = std::io::Error;
 #[cfg(feature = "std")]
-x!(StdIoError X3);
+x!(X3);
 type X4 = alloc::string::FromUtf8Error;
-x!(FromUtf8Error X4);
+x!(X4);
 type X5 = alloc::string::FromUtf16Error;
-x!(FromUtf16Error X5);
+x!(X5);
 type X10 = core::num::ParseIntError;
-x!(ParseIntError X10);
+x!(X10);
 type X11 = core::num::ParseFloatError;
-x!(ParseFloatError X11);
+x!(X11);
 type X12 = core::num::TryFromIntError;
-x!(TryFromIntError X12);
+x!(X12);
 type X13 = Box<dyn core::error::Error + Send + Sync>;
-x!(BoxedError X13);
+x!(X13);
 type X14 = alloc::borrow::Cow<'static, str>;
-x!(CowStrError X14);
+x!(X14);
+type X15 = Box<dyn core::fmt::Display + Send + Sync>;
+x!(X15);
 
 /*
 type X = ;
