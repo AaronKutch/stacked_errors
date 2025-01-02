@@ -41,7 +41,6 @@ fn error_debug() {
 Location { file: "tests/test.rs", line: 32, col: 10 },
 test,
 Location { file: "tests/test.rs", line: 30, col: 10 },
-UnitError,
 Location { file: "tests/test.rs", line: 9, col: 13 },
 hello
 ] })"#
@@ -91,18 +90,14 @@ fn stacking() {
     let tmp: Error = tmp.unwrap_err();
     assert_eq!(tmp.iter().len(), 2);
     let mut iter = tmp.iter();
-    iter.next().unwrap().downcast_ref::<&str>().unwrap();
     iter.next().unwrap().downcast_ref::<SpannedError>().unwrap();
+    iter.next().unwrap().downcast_ref::<&str>().unwrap();
 
     assert_stack(Err(Error::new()), true, true);
     assert_stack(Err(Error::from_err("s")), false, true);
     assert_stack(Err(Error::from_err_locationless("s")), false, false);
     assert_stack(Err(Error::empty().add_err("s")), false, true);
-    assert_stack(
-        Err(Error::empty().add_err_locationless("s")),
-        false,
-        false,
-    );
+    assert_stack(Err(Error::empty().add_err_locationless("s")), false, false);
     assert_stack(Err(Error::empty().add()), true, true);
 
     assert_stack(Err(Error::empty()).stack_err("e"), false, true);
@@ -121,14 +116,10 @@ fn stacking() {
     assert_stack(None.stack(), true, true);
     let tmp: Option<u8> = None;
     let tmp: core::result::Result<u8, Error> = tmp.stack();
-    assert_eq!(tmp.unwrap_err().iter().len(), 0);
+    assert_eq!(tmp.unwrap_err().iter().len(), 1);
 
     assert_stack(Error::empty().stack_err("e"), false, true);
-    assert_stack(
-        Error::empty().stack_err_locationless("e"),
-        false,
-        false,
-    );
+    assert_stack(Error::empty().stack_err_locationless("e"), false, false);
     assert_stack(Error::empty().stack(), true, true);
     let tmp = Error::empty();
     let tmp: core::result::Result<(), Error> = tmp.stack_locationless();

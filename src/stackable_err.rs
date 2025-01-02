@@ -124,7 +124,8 @@ fn stack_err<E: Display + Send + Sync + 'static, E1: Display + Send + Sync + 'st
         tmp.push_err(e);
         mem::take(tmp)
     } else {
-        Error::from_err(err)
+        // the location should be attached to the later part
+        Error::from_err_locationless(err).add_err(e)
     }
 }
 
@@ -141,7 +142,7 @@ fn stack_err_locationless<
         tmp.push_err_locationless(e);
         mem::take(tmp)
     } else {
-        Error::from_err_locationless(err)
+        Error::from_err_locationless(err).add_err_locationless(e)
     }
 }
 

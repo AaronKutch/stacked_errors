@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use core::{
     any::Any,
-    fmt::Display,
+    fmt::{Debug, Display},
     panic::Location,
     slice::{Iter, IterMut},
 };
@@ -17,10 +17,13 @@ use crate::{ProbablyNotRootCauseError, TimeoutError, UnitError};
 /// needed to enable using a type in both `dyn Display` form for displaying and
 /// in `dyn Any + Send + Sync` form for later downcasting
 pub trait StackableErrorTrait: Display + Any + Send + Sync + 'static {
-    // put as underscores since this this a hack implemented for all `T` that we
-    // don't want in IDEs
+    // put as underscores and with `#[doc(hidden)]` since this this a hack
+    // implemented for all `T` that we don't want in IDEs
+    #[doc(hidden)]
     fn _as_any(&self) -> &(dyn Any + Send + Sync);
+    #[doc(hidden)]
     fn _as_any_mut(&mut self) -> &mut (dyn Any + Send + Sync);
+    #[doc(hidden)]
     fn _as_display(&self) -> &(dyn Display + Send + Sync);
 }
 
@@ -38,7 +41,7 @@ impl<T: Display + Send + Sync + 'static> StackableErrorTrait for T {
     }
 }
 
-pub trait StackedErrorDowncast: Sized {
+pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
     fn get_err(&self) -> &(impl Display + Send + Sync + 'static);
 
     fn get_location(&self) -> Option<&'static Location<'static>>;
@@ -83,6 +86,22 @@ impl ErrorItem {
     }*/
 }
 
+impl Debug for ErrorItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("{}", self.get_err()))?;
+        if let Some(location) = self.get_location() {
+            f.write_fmt(format_args!(" {location:?}"))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for ErrorItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(self, f)
+    }
+}
+
 impl StackedErrorDowncast for ErrorItem {
     fn get_err(&self) -> &(impl Display + Send + Sync + 'static) {
         &self.b
@@ -100,14 +119,14 @@ impl StackedErrorDowncast for ErrorItem {
     where
         E: Display + Send + Sync + 'static,
     {
-        self.b._as_any().downcast_ref()
+        self.b.as_ref()._as_any().downcast_ref()
     }
 
     fn downcast_mut<E>(&mut self) -> Option<&mut E>
     where
         E: Display + Send + Sync + 'static,
     {
-        self.b._as_any_mut().downcast_mut()
+        self.b.as_mut()._as_any_mut().downcast_mut()
     }
 }
 
@@ -202,10 +221,7 @@ impl Error {
     }
 
     /// Pushes error `e` without location information to the stack
-    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(
-        &mut self,
-        e: E,
-    ) {
+    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(&mut self, e: E) {
         self.stack.push(ErrorItem::new(e, None));
     }
 
