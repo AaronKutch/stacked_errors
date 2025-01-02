@@ -45,6 +45,9 @@ pub trait StackableErr {
     ) -> Self::Output;
 }
 
+// TODO when trait aliases are stabilized
+//pub trait WrapErr = StackableErr;
+
 // NOTE: trait conflicts prevent us from implementing some desirable cases.
 // However, if specialization allows us to one day implement more, we have to be
 // careful that internal behavior similar to

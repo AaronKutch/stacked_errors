@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::{
     any::Any,
     fmt::{Debug, Display},
@@ -6,13 +5,14 @@ use core::{
     slice::{Iter, IterMut},
 };
 
+use smallbox::{smallbox, SmallBox};
 use thin_vec::{thin_vec, ThinVec};
 
 use crate::{ProbablyNotRootCauseError, TimeoutError, UnitError};
 
 /// Trait implemented for all `T: Display + Send + Sync + 'static`
 ///
-/// clever workaround from
+/// This is a clever workaround from
 /// <https://users.rust-lang.org/t/impossible-to-use-any-combined-with-any-other-trait/85949/5>
 /// needed to enable using a type in both `dyn Display` form for displaying and
 /// in `dyn Any + Send + Sync` form for later downcasting
@@ -68,16 +68,14 @@ pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
 // should be updated whenever this is changed. pub type ErrorBox = Box<dyn
 // Display + Send + Sync + 'static>;
 pub struct ErrorItem {
-    b: Box<dyn StackableErrorTrait>,
+    b: SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,
     l: Option<&'static Location<'static>>,
 }
-// FIXME
-//SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,;
 
 #[cfg(target_pointer_width = "64")]
 #[test]
 fn error_kind_size() {
-    assert_eq!(core::mem::size_of::<ErrorItem>(), 24);
+    assert_eq!(core::mem::size_of::<ErrorItem>(), 56);
 }
 
 impl ErrorItem {
@@ -85,7 +83,7 @@ impl ErrorItem {
         e: E,
         l: Option<&'static Location<'static>>,
     ) -> Self {
-        Self { b: Box::new(e), l }
+        Self { b: smallbox!(e), l }
     }
 
     // TODO when upcasting is implemented, this would enable `downcast` in
@@ -124,18 +122,21 @@ impl StackedErrorDowncast for ErrorItem {
     //    self.0.as_any().
     //}
 
+    // the borrows here are actually needed for `_as_any` to get the correct thing
+    #[allow(clippy::needless_borrow)]
     fn downcast_ref<E>(&self) -> Option<&E>
     where
         E: Display + Send + Sync + 'static,
     {
-        self.b.as_ref()._as_any().downcast_ref()
+        (&*self.b)._as_any().downcast_ref()
     }
 
+    #[allow(clippy::needless_borrow)]
     fn downcast_mut<E>(&mut self) -> Option<&mut E>
     where
         E: Display + Send + Sync + 'static,
     {
-        self.b.as_mut()._as_any_mut().downcast_mut()
+        (&mut self.b)._as_any_mut().downcast_mut()
     }
 }
 
@@ -150,15 +151,6 @@ impl StackedErrorDowncast for ErrorItem {
 /// [StackableErr](crate::StackableErr) trait, this enables easy conversion and
 /// software defined backtraces for better `async` debugging. See the crate docs
 /// for more.
-///
-/// Note that due to trait conflicts and not wanting users to accidentally
-/// wastefully embed `stacked_errors::Error` in a `BoxedErr` of another
-/// `stacked_errors::Error`, `stacked_errors::Error` itself does not actually
-/// implement [core::error::Error]. This does not pose a problem in most cases
-/// since it is intended to be the highest level of error that is directly
-/// returned or panicked on. However, if a user needs the end result struct to
-/// implement [core::error::Error], they can use the
-/// [StackedError](crate::StackedError) wrapper.
 pub struct StackedError {
     /// Using a ThinVec has advantages such as taking as little space as
     /// possible on the stack (since we are commiting to some indirection at

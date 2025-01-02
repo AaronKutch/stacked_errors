@@ -12,9 +12,9 @@
 //! "stackable" error type that allows for both software-defined error
 //! backtraces and easily converting errors into the stackable error type.
 //!
-//! This crate is similar to `eyre`, but has a more efficient internal layout,
-//! works with `no_std`, implements `core::error::Error`
-//! FIXME
+//! This crate is similar to `eyre`, but has a more efficient internal layout
+//! with a `ThinVec` array of `SmallBox`es, works with `no_std`, implements
+//! `core::error::Error`,
 //!
 //! Some partial examples of what using the crate looks like:
 //!

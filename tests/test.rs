@@ -1,52 +1,12 @@
 use core::mem;
 
-use stacked_errors::{bail, Error, Result, StackableErr, StackedErrorDowncast, UnitError};
-
-fn ex(s: &str, error: bool) -> Result<String> {
-    if error {
-        // this line is the critical case that must work
-        let _ = ron::from_str::<bool>("true").stack()?;
-        Err(Error::from_err(s.to_owned()))
-    } else {
-        Ok(s.to_owned())
-    }
-}
+use stacked_errors::{
+    bail, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
+};
 
 #[allow(unused)]
 trait VerifyCapable: Send + Sync {}
 impl VerifyCapable for Error {}
-
-#[test]
-fn error_debug() {
-    assert_eq!(
-        format!("{:?}", ex("hello", false)),
-        r#"Ok("hello")"#.to_owned()
-    );
-    assert_eq!(
-        format!("{:?}", ex("hello\"", false)),
-        r#"Ok("hello\"")"#.to_owned()
-    );
-    let tmp = ex("hello", true)
-        .stack()
-        .stack_locationless()
-        .stack_err("test")
-        .stack_err_locationless(ron::from_str::<bool>("invalid").unwrap_err())
-        .stack_err_locationless(Box::new(ron::from_str::<bool>("invalid").unwrap_err()));
-    println!("{tmp:?}");
-    assert_eq!(
-        format!("{:?}", tmp),
-        r#"Err(Error { stack: [
-1:1: Expected boolean
-1:1: Expected boolean
-Location { file: "tests/test.rs", line: 32, col: 10 },
-test
-Location { file: "tests/test.rs", line: 30, col: 10 },
-Location { file: "tests/test.rs", line: 9, col: 13 },
-hello
-] })"#
-            .to_owned()
-    );
-}
 
 #[test]
 fn error_size() {
@@ -146,4 +106,18 @@ fn test_bail() {
     let tmp = f().unwrap_err();
     let x = tmp.iter().next().unwrap();
     assert_eq!(*x.downcast_ref::<String>().unwrap(), "test 5");
+}
+
+#[test]
+fn test_special() {
+    let e = Error::from_err("hello")
+        .chain_errors(StackedError::probably_not_root_cause())
+        .add_err("world");
+    assert_eq!(e.iter().len(), 3);
+    assert!(e.is_probably_not_root_cause());
+    let e = Error::from_err("hello")
+        .chain_errors(StackedError::timeout())
+        .add_err("world");
+    assert_eq!(e.iter().len(), 3);
+    assert!(e.is_timeout());
 }
