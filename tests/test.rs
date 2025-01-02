@@ -1,14 +1,12 @@
 use core::mem;
 
-use stacked_errors::{
-    bail, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
-};
+use stacked_errors::{bail, Error, Result, StackableErr, StackedErrorDowncast, UnitError};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
         // this line is the critical case that must work
         let _ = ron::from_str::<bool>("true").stack()?;
-        Err(Error::from(s.to_owned()))
+        Err(Error::from_err(s.to_owned()))
     } else {
         Ok(s.to_owned())
     }
@@ -40,23 +38,14 @@ fn error_debug() {
         r#"Err(Error { stack: [
 1:1: Expected boolean
 1:1: Expected boolean
-Location { file: "tests/test.rs", line: 34, col: 10 },
-test
 Location { file: "tests/test.rs", line: 32, col: 10 },
-Location { file: "tests/test.rs", line: 11, col: 13 },
+test
+Location { file: "tests/test.rs", line: 30, col: 10 },
+Location { file: "tests/test.rs", line: 9, col: 13 },
 hello
 ] })"#
             .to_owned()
     );
-}
-
-#[cfg(target_pointer_width = "64")]
-#[test]
-fn error_kind_size() {
-    //use std::panic::Location;
-
-    // FIXME
-    //assert_eq!(mem::size_of::<ErrorItem>(), 40);
 }
 
 #[test]
@@ -133,12 +122,6 @@ fn debug_and_display() {
     let x = Error::from_err_locationless("hello");
     assert_eq!(format!("{x:?}"), "Error { stack: [\nhello\n] }");
     assert_eq!(format!("{x}"), "Error { stack: [\nhello\n] }");
-    let x = StackedError(x);
-    assert_eq!(
-        format!("{x:?}"),
-        "StackedError(Error { stack: [\nhello\n] })"
-    );
-    assert_eq!(format!("{x}"), "StackedError(Error { stack: [\nhello\n] })");
 }
 
 #[test]

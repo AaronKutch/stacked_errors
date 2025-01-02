@@ -46,6 +46,9 @@ pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
 
     fn get_location(&self) -> Option<&'static Location<'static>>;
 
+    // TODO the `eyre` crate has found a way to get this
+    // to work without the result being boxed
+
     // Attempts to downcast to a concrete type.
     //fn downcast<E: Display + Send + Sync + 'static>(self) -> Result<E, Self>;
 
@@ -69,7 +72,13 @@ pub struct ErrorItem {
     l: Option<&'static Location<'static>>,
 }
 // FIXME
-//SmallBox<dyn Display + Send + Sync + 'static, S4>;
+//SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,;
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn error_kind_size() {
+    assert_eq!(core::mem::size_of::<ErrorItem>(), 24);
+}
 
 impl ErrorItem {
     pub fn new<E: Display + Send + Sync + 'static>(
@@ -136,8 +145,8 @@ impl StackedErrorDowncast for ErrorItem {
 /// For lower level error propogation, you should still use ordinary [Option]
 /// and [Result] with domain-specific enums, it is only when using OS-level
 /// functions or when multiple domains converge that this is intended to be
-/// used. This has an internal stack for different kinds of arbitrary lower
-/// level errors and [Location](core::panic::Location)s. When used with the
+/// used. This has an internal stack for different kinds of arbitrary errors and
+/// [Location](core::panic::Location)s. When used with the
 /// [StackableErr](crate::StackableErr) trait, this enables easy conversion and
 /// software defined backtraces for better `async` debugging. See the crate docs
 /// for more.
@@ -150,7 +159,7 @@ impl StackedErrorDowncast for ErrorItem {
 /// returned or panicked on. However, if a user needs the end result struct to
 /// implement [core::error::Error], they can use the
 /// [StackedError](crate::StackedError) wrapper.
-pub struct Error {
+pub struct StackedError {
     /// Using a ThinVec has advantages such as taking as little space as
     /// possible on the stack (since we are commiting to some indirection at
     /// this point), and having the niche optimizations applied to things like
@@ -158,13 +167,7 @@ pub struct Error {
     stack: ThinVec<ErrorItem>,
 }
 
-// FIXME rename the above and have `Error` as an alias
-
-/// Wraps around [stacked_errors::Error](crate::Error) to implement
-/// [core::error::Error], since [stacked_errors::Error](crate::Error) itself
-/// cannot implement the trait.
-#[derive(Debug, thiserror::Error)]
-pub struct StackedError(pub Error);
+pub type Error = StackedError;
 
 /// Note: in most cases you can use `Error::from` or a call from `StackableErr`
 /// instead of these functions.
@@ -304,3 +307,13 @@ impl Default for Error {
         Error::new()
     }
 }
+
+impl core::error::Error for Error {}
+
+// TODO if the blanket impl collision problem is ever solved
+/*impl<E: Display + Send + Sync + 'static> From<E> for Error {
+    #[track_caller]
+    fn from(e: E) -> Self {
+        Error::from_err(e)
+    }
+}*/

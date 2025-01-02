@@ -13,6 +13,7 @@
 //! backtraces and easily converting errors into the stackable error type.
 //!
 //! This crate is similar to `eyre`, but has a more efficient internal layout,
+//! works with `no_std`, implements `core::error::Error`
 //! FIXME
 //!
 //! Some partial examples of what using the crate looks like:
@@ -68,27 +69,17 @@
 //! ```
 //!
 //! ```
-//! use stacked_errors::{Error, Result, StackableErr};
+//! use stacked_errors::{bail, Error, Result, StackableErr};
 //!
 //! // Note that `Error` uses `ThinVec` internally, which means that it often
 //! // takes up only the stack space of a `usize` or the size of the `T` plus
 //! // a byte.
 //! fn innermost(s: &str) -> Result<u8> {
 //!     if s == "return error" {
-//!         // When creating the initial `Result<_, Error>` from something that
-//!         // is directly representable in a `ErrorKind` (i.e. not needing
-//!         // `BoxedErr`), use this `Err(Error::from(...))` format. This
-//!         // format is cumbersome relative to the other features of this
-//!         // crate, but it is the best solution because of technicalities
-//!         // related to trait collisions at the design level, `Result` type
-//!         // inference with the return type, wanting to keep the directly
-//!         // representable strings outside of a box for performance, and
-//!         // because of the `Display` impl which special cases them.
-//!
-//!         return Err(Error::from("bottom level `StrErr`"))
+//!         bail!("bottom level `StrErr`")
 //!     }
 //!     if s == "parse invalid" {
-//!         // However, this is the common case where we have some external
+//!         // This is the common case where we have some external
 //!         // crate function that returns a `Result<..., E: Error>`. We
 //!         // usually call `StackableErr::stack_err` if we want to attach
 //!         // some message to it right away (it is called with a closure
@@ -137,10 +128,10 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 55, col: 22 },
-//! Location { file: "src/lib.rs", line: 48, col: 10 },
+//! Location { file: "src/lib.rs", line: 45, col: 22 },
+//! Location { file: "src/lib.rs", line: 38, col: 10 },
 //! error from innermost("return error")
-//! Location { file: "src/lib.rs", line: 22, col: 20 },
+//! Location { file: "src/lib.rs", line: 12, col: 9 },
 //! bottom level `StrErr`
 //! ] })"#
 //! );
@@ -149,10 +140,10 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 55, col: 22 },
-//! Location { file: "src/lib.rs", line: 48, col: 10 },
+//! Location { file: "src/lib.rs", line: 45, col: 22 },
+//! Location { file: "src/lib.rs", line: 38, col: 10 },
 //! error from innermost("parse invalid")
-//! Location { file: "src/lib.rs", line: 34, col: 14 },
+//! Location { file: "src/lib.rs", line: 24, col: 14 },
 //! parsing error with "parse invalid"
 //! 1:1: Expected unit
 //! ] })"#
@@ -179,8 +170,6 @@ mod macros;
 mod special;
 mod stackable_err;
 
-use alloc::boxed::Box;
-
 pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast};
 pub use fmt::{DisplayShortLocation, DisplayStr};
 pub use special::*;
@@ -195,6 +184,7 @@ pub mod __private {
     pub use alloc::format;
     pub use core::{concat, format_args, stringify};
 
+    #[track_caller]
     pub fn format_err(args: core::fmt::Arguments<'_>) -> crate::Error {
         let fmt_arguments_as_str = args.as_str();
 
@@ -207,44 +197,3 @@ pub mod __private {
         }
     }
 }
-
-macro_rules! x {
-    ($x:ty) => {
-        impl From<$x> for Error {
-            #[track_caller]
-            fn from(e: $x) -> Self {
-                Self::from_err(e)
-            }
-        }
-    };
-}
-
-type X1 = &'static str;
-x!(X1);
-type X2 = alloc::string::String;
-x!(X2);
-#[cfg(feature = "std")]
-type X3 = std::io::Error;
-#[cfg(feature = "std")]
-x!(X3);
-type X4 = alloc::string::FromUtf8Error;
-x!(X4);
-type X5 = alloc::string::FromUtf16Error;
-x!(X5);
-type X10 = core::num::ParseIntError;
-x!(X10);
-type X11 = core::num::ParseFloatError;
-x!(X11);
-type X12 = core::num::TryFromIntError;
-x!(X12);
-type X13 = Box<dyn core::error::Error + Send + Sync>;
-x!(X13);
-type X14 = alloc::borrow::Cow<'static, str>;
-x!(X14);
-type X15 = Box<dyn core::fmt::Display + Send + Sync>;
-x!(X15);
-
-/*
-type X = ;
-x!(Error X);
-*/
