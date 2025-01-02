@@ -14,6 +14,35 @@ macro_rules! bail {
     };
 }
 
+/// For ease of translating from the `eyre` crate, but also the recommended
+/// macro to use if you use this kind of macro
+#[macro_export]
+macro_rules! eyre {
+    ($msg:literal $(,)?) => {
+        $crate::__private::format_err($crate::__private::format_args!($msg));
+    };
+    ($err:expr $(,)?) => {
+        $crate::Error::from_err($err);
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*));
+    };
+}
+
+/// For ease of translating from the `anyhow` crate
+#[macro_export]
+macro_rules! anyhow {
+    ($msg:literal $(,)?) => {
+        $crate::__private::format_err($crate::__private::format_args!($msg));
+    };
+    ($err:expr $(,)?) => {
+        $crate::Error::from_err($err);
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*));
+    };
+}
+
 /// Asserts that a boolean expression is `true` at runtime, returning a
 /// stackable error otherwise.
 ///

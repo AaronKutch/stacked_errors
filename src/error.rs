@@ -85,12 +85,6 @@ impl ErrorItem {
     ) -> Self {
         Self { b: smallbox!(e), l }
     }
-
-    // TODO when upcasting is implemented, this would enable `downcast` in
-    // `StackedErrorDowncast`
-    /*pub fn inner_downcast(self) -> Box<dyn Any + Send + Sync + 'static> {
-        self.0 as Box<_>
-    }*/
 }
 
 impl Debug for ErrorItem {

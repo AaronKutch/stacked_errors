@@ -43,6 +43,17 @@ pub trait StackableErr {
         self,
         msg: F,
     ) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err] which can be used for easier
+    /// translation to and from the `anyhow` crate
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err_with] which can be used for
+    /// easier translation to and from the `anyhow` crate
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output;
 }
 
 // TODO when trait aliases are stabilized
@@ -215,6 +226,19 @@ impl<T, E: Display + Send + Sync + 'static> StackableErr for core::result::Resul
     ) -> Self::Output {
         self.stack_err_with(msg)
     }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
 }
 
 impl<T> StackableErr for Option<T> {
@@ -283,6 +307,19 @@ impl<T> StackableErr for Option<T> {
     ) -> Self::Output {
         self.stack_err_with(msg)
     }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
 }
 
 impl StackableErr for Error {
@@ -328,6 +365,19 @@ impl StackableErr for Error {
 
     #[track_caller]
     fn wrap_err_with<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
         self,
         msg: F,
     ) -> Self::Output {
