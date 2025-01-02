@@ -40,7 +40,7 @@
 macro_rules! ensure {
     ($expr:expr) => {
         if !$expr {
-            return Err($crate::Error::from_kind($crate::__private::concat!(
+            return Err($crate::Error::from_err($crate::__private::concat!(
                 "ensure(",
                 $crate::__private::stringify!($expr),
                 ") -> assertion failed"
@@ -49,7 +49,7 @@ macro_rules! ensure {
     };
     ($expr:expr, $msg:expr) => {
         if !$expr {
-            return Err($crate::Error::from_kind($msg))
+            return Err($crate::Error::from_err($msg))
         }
     };
 }

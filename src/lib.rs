@@ -4,17 +4,21 @@
 //! In Rust development, major crates will often have their own error enums that
 //! work well in their own specialized domain, but when orchestrating many
 //! domains together we run into issues. `map_err` is very annoying to work
-//! with. In `async` call stacks we run into an especially annoying problem
+//! with. In `async` call stacks or cases where we can't easily control
+//! `RUST_BACKTRACE`, we run into an especially annoying problem
 //! where the same kind of error can be returned from multiple places, and we
 //! are sometimes forced into `println` debugging to find out where it is
 //! actually from. This crate introduces the `StackableErr` trait and a
 //! "stackable" error type that allows for both software-defined error
 //! backtraces and easily converting errors into the stackable error type.
 //!
+//! This crate is similar to `eyre`, but has a more efficient internal layout,
+//! FIXME
+//!
 //! Some partial examples of what using the crate looks like:
 //!
 //! ```text
-//! f.map_err(|e| Error::from_box(Box::new(e)))?;
+//! f.map_err(|e| Error::from_err(e))?;
 //! // replace the above with
 //! f.stack()?; // uses `#[track_caller]` when an error is being propagated
 //! ```
@@ -22,31 +26,35 @@
 //! let dir = self
 //!     .path
 //!     .parent()
-//!     .stack_err(|| "FileOptions::preacquire() -> empty path")?
+//!     .stack_err("FileOptions::preacquire() -> empty path")?
 //!     .to_str()
-//!     .stack_err(|| "bad OsStr conversion")?;
+//!     .stack_err("bad OsStr conversion")?;
 //! ```
 //! ```text
-//! // if needing to push another arbitrary error onto the stack
-//! f.stack_err(|| ErrorKind::box_from(arbitrary))?;
+//! // arbitrary things implementing `Display + Send + Sync + 'static` can be stacked
+//! f.stack_err(arbitrary)?;
+//! // readily swappable with `anyhow` and `eyre` due to extra method, trait, and
+//! // struct aliases
+//! f.wrap_err(arbitrary)?;
+//! f.context(arbitrary)?;
 //! ```
 //! ```text
+//! // The trait is implemented for options so that we don't need `OptionExt` like
+//! // `eyre` does
 //! option.take()
-//!     .stack_err(|| "`Struct` has already been taken")?
+//!     .stack_err("`Struct` has already been taken")?
 //!     .wait_with_output()
 //!     .await
-//!     .stack_err(|| {
+//!     .stack_err_with(|| {
 //!         format!("{self:?}.xyz() -> failed when waiting")
 //!     })?;
 //! ```
 //! ```text
-//! // strings and some std errors can be created like this,
-//! return Err(Error::from(format!(
+//! return Err(Error::from_err(format!(
 //!     "failure of {x:?} to complete"
 //! )))
-//! // otherwise use this (also note that `Error::from*` includes
-//! // `#[track_caller]` location, no need to add on a `stack` call)
-//! return Err(Error::box_from(needs_boxing))
+//! // replace the above with
+//! bail!("failure of {x:?} to complete")
 //! ```
 //! ```text
 //! // when the error type is already `stacked_errors::Error` you can do this if it is
@@ -55,7 +63,7 @@
 //!     Ok(ok) => {
 //!         ...
 //!     }
-//!     Err(e) => Err(e.add_kind(format!("myfunction(.., host: {host})"))),
+//!     Err(e) => Err(e.add_err(format!("myfunction(.., host: {host})"))),
 //! }
 //! ```
 //!
@@ -88,7 +96,9 @@
 //!         // just call `StackableErr::stack` so that just the location is
 //!         // pushed on the stack. We can then use `?` directly.
 //!
-//!         let _ = ron::from_str("invalid").stack_err(|| format!("parsing error with \"{s}\""))?;
+//!         let _: () = ron::from_str("invalid").stack_err_with(|| {
+//!             format!("parsing error with \"{s}\"")
+//!         })?;
 //!     }
 //!     Ok(42)
 //! }
@@ -102,7 +112,7 @@
 //!
 //!     let x = innermost(s)
 //!         .map(|x| u16::from(x))
-//!         .stack_err(|| format!("error from innermost(\"{s}\")"))?;
+//!         .stack_err_with(|| format!("error from innermost(\"{s}\")"))?;
 //!     Ok(x)
 //! }
 //!
@@ -128,8 +138,8 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 54, col: 22 },
-//! Location { file: "src/lib.rs", line: 47, col: 10 },
+//! Location { file: "src/lib.rs", line: 52, col: 22 },
+//! Location { file: "src/lib.rs", line: 49, col: 10 },
 //! error from innermost("return error")
 //! Location { file: "src/lib.rs", line: 22, col: 20 },
 //! bottom level `StrErr`
@@ -140,8 +150,8 @@
 //! assert_eq!(
 //!     res,
 //!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 54, col: 22 },
-//! Location { file: "src/lib.rs", line: 47, col: 10 },
+//! Location { file: "src/lib.rs", line: 52, col: 22 },
+//! Location { file: "src/lib.rs", line: 49, col: 10 },
 //! error from innermost("parse invalid")
 //! parsing error with "parse invalid"
 //! Location { file: "src/lib.rs", line: 33, col: 42 },
@@ -150,12 +160,10 @@
 //! );
 //! ```
 //!
-//! Also remember that `.stack_err(|| ())` is equivalent to `.stack()`
-//!
 //! ```text
 //! // in commonly used functions you may want `_locationless` to avoid adding
 //! // on unnecessary information if the location is already being added on
-//! return Err(e.add_kind_locationless(ErrorKind::TimeoutError)).stack_err(|| {
+//! return Err(e.add_err_locationless(ErrorKind::TimeoutError)).stack_err_with(|| {
 //!     format!(
 //!         "wait_for_ok(num_retries: {num_retries}, delay: {delay:?}) timeout, \
 //!          last error stack was:"
@@ -166,7 +174,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
-mod ensure;
+mod macros;
 mod error;
 mod fmt;
 mod special;
