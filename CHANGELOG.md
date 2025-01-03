@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.0]
+## [0.7.0] - 2024-1-3
 ### Changes
 - All `E: Display + Send + Sync + 'static` can be used with `StackableErr` now
 - Removed `ErrorKind`, all types go in a `SmallBox` internally

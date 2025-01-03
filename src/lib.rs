@@ -14,7 +14,7 @@
 //!
 //! This crate is similar to `eyre`, but has a more efficient internal layout
 //! with a `ThinVec` array of `SmallBox`es, works with `no_std`, implements
-//! `core::error::Error`,
+//! `core::error::Error`, and more.
 //!
 //! Some partial examples of what using the crate looks like:
 //!
