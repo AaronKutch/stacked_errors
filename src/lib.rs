@@ -124,29 +124,25 @@
 //! // the associated error message, the location of either the `Error::from`
 //! // or `stack_err` from `innermost`, and finally the root error message.
 //!
-//! let res = format!("{:?}", outer("return error"));
+//! // note that debug mode (used when returning errors from the main function)
+//! // includes terminal styling
+//! println!("{:?}", outer("return error"));
+//! let res = format!("{}", outer("return error").unwrap_err());
 //! assert_eq!(
 //!     res,
-//!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 45, col: 22 },
-//! Location { file: "src/lib.rs", line: 38, col: 10 },
-//! error from innermost("return error")
-//! Location { file: "src/lib.rs", line: 12, col: 9 },
-//! bottom level `StrErr`
-//! ] })"#
+//!     r#"at src/lib.rs 45:22,
+//! error from innermost("return error") at src/lib.rs 38:10,
+//! bottom level `StrErr` at src/lib.rs 12:9"#
 //! );
 //!
-//! let res = format!("{:?}", outer("parse invalid"));
+//! println!("{:?}", outer("parse invalid"));
+//! let res = format!("{}", outer("parse invalid").unwrap_err());
 //! assert_eq!(
 //!     res,
-//!     r#"Err(Error { stack: [
-//! Location { file: "src/lib.rs", line: 45, col: 22 },
-//! Location { file: "src/lib.rs", line: 38, col: 10 },
-//! error from innermost("parse invalid")
-//! Location { file: "src/lib.rs", line: 24, col: 14 },
-//! parsing error with "parse invalid"
-//! 1:1: Expected unit
-//! ] })"#
+//!     r#"at src/lib.rs 45:22,
+//! error from innermost("parse invalid") at src/lib.rs 38:10,
+//! parsing error with "parse invalid" at src/lib.rs 24:14,
+//! 1:1: Expected unit"#
 //! );
 //! ```
 //!
@@ -192,6 +188,18 @@ pub mod __private {
         } else {
             // interpolation
             crate::Error::from_err(alloc::fmt::format(args))
+        }
+    }
+
+    pub fn format_err_locationless(args: core::fmt::Arguments<'_>) -> crate::Error {
+        let fmt_arguments_as_str = args.as_str();
+
+        if let Some(message) = fmt_arguments_as_str {
+            // &'static str
+            crate::Error::from_err_locationless(message)
+        } else {
+            // interpolation
+            crate::Error::from_err_locationless(alloc::fmt::format(args))
         }
     }
 }

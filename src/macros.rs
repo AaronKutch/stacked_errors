@@ -14,6 +14,24 @@ macro_rules! bail {
     };
 }
 
+/// The `bail` macro but with `_locationless` variations
+#[macro_export]
+macro_rules! bail_locationless {
+    ($msg:literal $(,)?) => {
+        return Err($crate::__private::format_err_locationless(
+            $crate::__private::format_args!($msg)
+        ));
+    };
+    ($err:expr $(,)?) => {
+        return Err($crate::Error::from_err_locationless($err));
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        return Err($crate::Error::from_err_locationless(
+            $crate::__private::format!($fmt, $($arg)*)
+        ));
+    };
+}
+
 /// For ease of translating from the `eyre` crate, but also the recommended
 /// macro to use if you use this kind of macro
 #[macro_export]
@@ -67,18 +85,12 @@ macro_rules! anyhow {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(false, true).unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 10, col: 5 },
-/// ensure(val0) -> assertion failed
-/// ] }"#
+///     r#"ensure(val0) -> assertion failed at src/macros.rs 10:5"#
 /// );
 ///
 /// assert_eq!(
 ///     format!("{}", ex(true, false).unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 12, col: 5 },
-/// val1 was false
-/// ] }"#
+///     r#"val1 was false at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]
@@ -125,21 +137,15 @@ macro_rules! ensure {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 10, col: 5 },
-/// ensure_eq(
+///     r#"ensure_eq(
 ///  lhs: 8
 ///  rhs: 0
-/// ) -> equality assertion failed
-/// ] }"#
+/// ) -> equality assertion failed at src/macros.rs 10:5"#
 /// );
 ///
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 12, col: 5 },
-/// val1 was "other"
-/// ] }"#
+///     r#"val1 was "other" at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]
@@ -196,21 +202,15 @@ macro_rules! ensure_eq {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 10, col: 5 },
-/// ensure_ne(
+///     r#"ensure_ne(
 ///  lhs: 8
 ///  rhs: 8
-/// ) -> inequality assertion failed
-/// ] }"#
+/// ) -> inequality assertion failed at src/macros.rs 10:5"#
 /// );
 ///
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
-///     r#"Error { stack: [
-/// Location { file: "src/macros.rs", line: 12, col: 5 },
-/// val1 was "test"
-/// ] }"#
+///     r#"val1 was "test" at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]

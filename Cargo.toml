@@ -17,6 +17,7 @@ description = "high level error propogation with software controlled backtraces"
 smallbox = { version = "0.8", default-features = false }
 thin-vec = "0.2"
 thiserror = "2"
+owo-colors = { version = "4.1", default-features = false }
 
 [dev-dependencies]
 ron = { version = "0.8", default-features = false }

@@ -64,53 +64,46 @@ fn ensure_test() {
         ensure_eq!(1, 2);
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 64, col: 9 },
-ensure_eq(
+        r#"ensure_eq(
  lhs: 1
  rhs: 2
-) -> equality assertion failed
-] }"#
+) -> equality assertion failed at tests/ensure.rs 64:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_eq!(1, 2, "hello");
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 79, col: 9 },
-hello
-] }"#
+        r#"hello at tests/ensure.rs 77:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_ne!(2, 2);
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 91, col: 9 },
-ensure_ne(
+        r#"ensure_ne(
  lhs: 2
  rhs: 2
 ) -> inequality assertion failed
-] }"#
+at tests/ensure.rs 87:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_ne!(2, 2, "hello");
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 106, col: 9 },
-hello
-] }"#
+        r#"hello at tests/ensure.rs 101:9"#
     );
 }

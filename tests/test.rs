@@ -80,8 +80,8 @@ fn stacking() {
 #[test]
 fn debug_and_display() {
     let x = Error::from_err_locationless("hello");
-    assert_eq!(format!("{x:?}"), "Error { stack: [\nhello\n] }");
-    assert_eq!(format!("{x}"), "Error { stack: [\nhello\n] }");
+    assert_eq!(format!("{x:?}"), "hello");
+    assert_eq!(format!("{x}"), "hello");
 }
 
 #[test]
