@@ -240,3 +240,153 @@ macro_rules! ensure_ne {
         }
     };
 }
+
+/// Applies `get` and `stack_err_with(...)?` in a chain, this is compatible with
+/// many things.
+///
+/// ```
+/// use serde_json::Value;
+/// use stacked_errors::{ensure, stacked_get, Result, StackableErr};
+///
+/// let s = r#"{
+///     "Id": "id example",
+///     "Created": 2023,
+///     "Args": [
+///         "--entry-name",
+///         "--uuid"
+///     ],
+///     "State": {
+///         "Status": "running",
+///         "Running": true
+///     }
+/// }"#;
+///
+/// fn ex0(s: &str) -> Result<()> {
+///     let value: Value = serde_json::from_str(s).stack()?;
+///
+///     // the normal `Index`ing of `Values` panics, this
+///     // returns a formatted error
+///     ensure!(stacked_get!(value["Id"]) == "id example");
+///     ensure!(stacked_get!(value["Created"]) == 2023);
+///     ensure!(stacked_get!(value["Args"][1]) == "--uuid");
+///     ensure!(stacked_get!(value["State"]["Status"]) == "running");
+///     ensure!(stacked_get!(value["State"]["Running"]) == true);
+///
+///     Ok(())
+/// }
+///
+/// ex0(s).unwrap();
+///
+/// fn ex1(s: &str) -> Result<()> {
+///     let value: Value = serde_json::from_str(s).stack()?;
+///
+///     let _ = stacked_get!(value["State"]["nonexistent"]);
+///
+///     Ok(())
+/// }
+///
+/// assert!(ex1(s).is_err());
+/// ```
+#[macro_export]
+macro_rules! stacked_get {
+    ($value:ident [$inx0:expr] $([$inx1:expr])*) => {{
+        // this is unrolled once to avoid a let binding
+        // and allow multiple kinds of borrowing
+        #[allow(unused)]
+        let mut tmp = $crate::StackableErr::stack_err_with($value.get($inx0),
+            || {$crate::__private::format!(
+                "stacked_get({} ... [{:?}] ...) -> indexing failed",
+                $crate::__private::stringify!($value),
+                $inx0
+            )}
+        )?;
+        $(
+            tmp = $crate::StackableErr::stack_err_with(tmp.get($inx1),
+                || $crate::__private::format!(
+                    "stacked_get({} ... [{:?}] ...) -> indexing failed",
+                    $crate::__private::stringify!($value),
+                    $inx1
+                )
+            )?;
+        )*
+        tmp
+    }};
+}
+
+/// Applies `get_mut` and `stack_err_with(...)?` in a chain, this is compatible
+/// with many things.
+///
+/// ```
+/// use serde_json::Value;
+/// use stacked_errors::{ensure, stacked_get, stacked_get_mut, Result, StackableErr};
+///
+/// let s = r#"{
+///     "Id": "id example",
+///     "Created": 2023,
+///     "Args": [
+///         "--entry-name",
+///         "--uuid"
+///     ],
+///     "State": {
+///         "Status": "running",
+///         "Running": true
+///     }
+/// }"#;
+///
+/// fn ex0(s: &str) -> Result<()> {
+///     let mut value: Value = serde_json::from_str(s).stack()?;
+///
+///     *stacked_get_mut!(value["Id"]) = "other".into();
+///     *stacked_get_mut!(value["Created"]) = 0.into();
+///     *stacked_get_mut!(value["Args"][1]) = "--other".into();
+///     *stacked_get_mut!(value["State"]["Status"]) = "stopped".into();
+///     *stacked_get_mut!(value["State"]["Running"]) = false.into();
+///
+///     // when creating a new field
+///     stacked_get_mut!(value["State"])["OtherField"] = "hello".into();
+///
+///     ensure!(stacked_get!(value["Id"]) == "other");
+///     ensure!(stacked_get!(value["Created"]) == 0);
+///     ensure!(stacked_get!(value["Args"][1]) == "--other");
+///     ensure!(stacked_get!(value["State"]["Status"]) == "stopped");
+///     ensure!(stacked_get!(value["State"]["Running"]) == false);
+///     ensure!(stacked_get!(value["State"]["OtherField"]) == "hello");
+///
+///     Ok(())
+/// }
+///
+/// ex0(s).unwrap();
+///
+/// fn ex1(s: &str) -> Result<()> {
+///     let mut value: Value = serde_json::from_str(s).stack()?;
+///
+///     let _ = stacked_get_mut!(value["State"]["nonexistent"]);
+///
+///     Ok(())
+/// }
+///
+/// assert!(ex1(s).is_err());
+/// ```
+#[macro_export]
+macro_rules! stacked_get_mut {
+    ($value:ident [$inx0:expr] $([$inx1:expr])*) => {{
+        #[allow(unused)]
+        let mut tmp = $crate::StackableErr::stack_err_with($value.get_mut($inx0),
+            || $crate::__private::format!(
+                "stacked_get_mut({} ... [{:?}] ...) -> indexing failed",
+                $crate::__private::stringify!($value),
+                $inx0
+            )
+        )?;
+        $(
+            tmp = $crate::StackableErr::stack_err_with(tmp.get_mut($inx1),
+                || $crate::__private::format!(
+                    "stacked_get_mut({} ... [{:?}] ...) -> indexing failed",
+                    $crate::__private::stringify!($value),
+                    $inx1
+                )
+            )?;
+        )*
+        tmp
+    }};
+}
