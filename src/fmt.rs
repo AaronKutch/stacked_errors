@@ -58,7 +58,7 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
         if first {
             // this we do to better interact with `Error: ` etc since this is going to be a
             // list anyways, some other libraries do this as well
-            write!(s, "\n")?;
+            writeln!(s)?;
         }
         let is_unit_err = e.downcast_ref::<UnitError>().is_some();
         let is_last = i == 0;
@@ -82,7 +82,7 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
         if let Some(l) = e.get_location() {
             // if the current length plus the location length (the +8 is from the space,
             // colon, and 4 digits for line and 2 for column) is more than 80 then split up
-            if (s.len() + l.file().len() + 8) > 80 {
+            if (tmp.len() + l.file().len() + 8) > 80 {
                 // split up
                 write!(s, "\n  at ")?;
             } else if !is_unit_err {
@@ -108,7 +108,7 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
             }
         }
         if !is_last {
-            write!(s, "\n")?;
+            writeln!(s)?;
         }
         f.write_fmt(format_args!("{s}"))?;
         first = false;

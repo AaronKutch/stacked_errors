@@ -85,12 +85,14 @@ macro_rules! anyhow {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(false, true).unwrap_err()),
-///     r#"ensure(val0) -> assertion failed at src/macros.rs 10:5"#
+///     r#"
+///     ensure(val0) -> assertion failed at src/macros.rs 10:5"#
 /// );
 ///
 /// assert_eq!(
 ///     format!("{}", ex(true, false).unwrap_err()),
-///     r#"val1 was false at src/macros.rs 12:5"#
+///     r#"
+///     val1 was false at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]
@@ -137,7 +139,8 @@ macro_rules! ensure {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
-///     r#"ensure_eq(
+///     r#"
+///     ensure_eq(
 ///  lhs: 8
 ///  rhs: 0
 /// ) -> equality assertion failed at src/macros.rs 10:5"#
@@ -145,7 +148,8 @@ macro_rules! ensure {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
-///     r#"val1 was "other" at src/macros.rs 12:5"#
+///     r#"
+///     val1 was "other" at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]
@@ -202,7 +206,8 @@ macro_rules! ensure_eq {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(8, "other").unwrap_err()),
-///     r#"ensure_ne(
+///     r#"
+///     ensure_ne(
 ///  lhs: 8
 ///  rhs: 8
 /// ) -> inequality assertion failed at src/macros.rs 10:5"#
@@ -210,7 +215,8 @@ macro_rules! ensure_eq {
 ///
 /// assert_eq!(
 ///     format!("{}", ex(0, "test").unwrap_err()),
-///     r#"val1 was "test" at src/macros.rs 12:5"#
+///     r#"
+///     val1 was "test" at src/macros.rs 12:5"#
 /// );
 /// ```
 #[macro_export]

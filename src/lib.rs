@@ -130,19 +130,21 @@
 //! let res = format!("{}", outer("return error").unwrap_err());
 //! assert_eq!(
 //!     res,
-//!     r#"at src/lib.rs 45:22,
-//! error from innermost("return error") at src/lib.rs 38:10,
-//! bottom level `StrErr` at src/lib.rs 12:9"#
+//!     r#"
+//!   at src/lib.rs 45:22
+//!     error from innermost("return error") at src/lib.rs 38:10
+//!     bottom level `StrErr` at src/lib.rs 12:9"#
 //! );
 //!
 //! println!("{:?}", outer("parse invalid"));
 //! let res = format!("{}", outer("parse invalid").unwrap_err());
 //! assert_eq!(
 //!     res,
-//!     r#"at src/lib.rs 45:22,
-//! error from innermost("parse invalid") at src/lib.rs 38:10,
-//! parsing error with "parse invalid" at src/lib.rs 24:14,
-//! 1:1: Expected unit"#
+//!     r#"
+//!   at src/lib.rs 45:22
+//!     error from innermost("parse invalid") at src/lib.rs 38:10
+//!     parsing error with "parse invalid" at src/lib.rs 24:14
+//!     1:1: Expected unit"#
 //! );
 //! ```
 //!

@@ -20,12 +20,13 @@ fn error_debug() {
     println!("{tmp:?}");
     assert_eq!(
         format!("{}", tmp.unwrap_err()),
-        r#"1:1: Expected boolean,
-1:1: Expected boolean,
-test long ___________________________________________________________________
-at tests/debug.rs 17:10,
-at tests/debug.rs 15:10,
-hello at tests/debug.rs 37:13"#
+        r#"
+    1:1: Expected boolean
+    1:1: Expected boolean
+    test long ___________________________________________________________________
+  at tests/debug.rs 17:10
+  at tests/debug.rs 15:10
+    hello at tests/debug.rs 38:13"#
             .to_owned()
     );
 }
