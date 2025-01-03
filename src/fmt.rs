@@ -2,7 +2,7 @@ use alloc::{fmt, fmt::Debug};
 use core::{fmt::Display, panic::Location};
 use std::fmt::Write;
 
-use owo_colors::{OwoColorize, Style};
+use owo_colors::{CssColors, OwoColorize, Style};
 
 use crate::{error::StackedErrorDowncast, Error, UnitError};
 
@@ -86,8 +86,15 @@ impl Debug for Error {
         // in reverse order of a typical stack, I don't want to have to scroll up to see
         // the more specific errors
         let mut s = String::new();
+        let mut tmp = String::new();
+        let mut first = true;
         for (i, e) in self.iter().enumerate().rev() {
             s.clear();
+            if first {
+                // this we do to better interact with `Error: ` etc since this is going to be a
+                // list anyways, some other libraries do this as well
+                write!(s, "\n")?;
+            }
             let is_unit_err = e.downcast_ref::<UnitError>().is_some();
             let is_last = i == 0;
             if is_unit_err {
@@ -95,32 +102,41 @@ impl Debug for Error {
                     continue;
                 }
             } else {
-                write!(s, "{}", e.get_err())?;
+                // TODO can we get rid of the allocated temporaries?
+                tmp.clear();
+                write!(tmp, "{}", e.get_err())?;
+                // if there are vt100 styling characters, do not apply styling
+                if tmp.contains('\u{1b}') {
+                    write!(s, "    {}", tmp)?;
+                } else {
+                    let color = Style::new().color(CssColors::IndianRed);
+                    write!(s, "    {}", tmp.style(color))?;
+                }
             }
             if let Some(l) = e.get_location() {
                 // if the current length plus the location length (the +8 is from the space,
                 // colon, and 4 digits for line and 2 for column) is more than 80 then split up
                 if (s.len() + l.file().len() + 8) > 80 {
                     // split up
-                    write!(s, "\n")?;
+                    write!(s, "\n  at ")?;
                 } else if !is_unit_err {
-                    write!(s, " ")?;
+                    write!(s, " at ")?;
+                } else {
+                    write!(s, "  at ")?;
                 }
-                let underline = Style::new().underline();
+                let dimmed = Style::new().dimmed();
                 let bold = Style::new().bold();
 
-                write!(
-                    s,
-                    "at {} {}:{}",
-                    shorten_location(l.file()).style(underline),
-                    l.line().style(bold),
-                    l.column().style(bold),
-                )?;
+                tmp.clear();
+                write!(tmp, "{}:{}", l.line(), l.column())?;
+
+                write!(s, "{} {}", shorten_location(l.file()).style(dimmed), tmp.style(bold))?;
             }
             if !is_last {
-                write!(s, ",\n")?;
+                write!(s, "\n")?;
             }
-            f.write_fmt(format_args!("{s}"))?
+            f.write_fmt(format_args!("{s}"))?;
+            first = false;
         }
         Ok(())
     }

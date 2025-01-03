@@ -296,10 +296,7 @@ impl Default for Error {
 
 impl core::error::Error for Error {}
 
-// TODO if the blanket impl collision problem is ever solved
-/*impl<E: Display + Send + Sync + 'static> From<E> for Error {
-    #[track_caller]
-    fn from(e: E) -> Self {
-        Error::from_err(e)
-    }
-}*/
+// there is a blanket impl collision, but I don't think we want to impl this
+// anyway since without it it makes sure we have `stack` calls at the error
+// origin
+/* impl<E: Display + Send + Sync + 'static> From<E> for Error */
