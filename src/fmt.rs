@@ -1,5 +1,5 @@
 use alloc::{fmt, fmt::Debug};
-use core::{fmt::Display, panic::Location};
+use core::fmt::Display;
 use std::fmt::Write;
 
 use owo_colors::{CssColors, OwoColorize, Style};
@@ -15,7 +15,14 @@ impl Debug for DisplayStr<'_> {
     }
 }
 
-fn shorten_location(mut s: &str) -> &str {
+/// Intended for shortening the file field of `Location`s.
+///
+/// If this finds "/.cargo/registry/src/", it truncates that and all previous
+/// characters, and the following "/" group if it exists (it is alternately
+/// configured to do this with "\\" on Windows). For example, "/home/admin/.
+/// cargo/registry/src/index.crates.io-6f17d22bba15001f/ super_orchestrator-0.5.
+/// 1/src/misc.rs" gets truncated to "super_orchestrator-0.5.1/src/misc.rs"
+pub fn shorten_location(mut s: &str) -> &str {
     #[cfg(not(windows))]
     {
         let find = "/.cargo/registry/src/";
@@ -40,148 +47,85 @@ fn shorten_location(mut s: &str) -> &str {
     }
 }
 
-/// This is a wrapper around a `Location` that shortens the `Debug` of the
-/// `file` field
-///
-/// If this detects "/.cargo/registry/src/" in the `file` field, it truncates
-/// that and all previous characters, and the following "/" group if it exists
-/// (it is alternately configured to do this with "\\" on Windows). For example,
-/// "/home/admin/.cargo/registry/src/index.crates.io-6f17d22bba15001f/
-/// super_orchestrator-0.5.1/src/misc.rs"
-/// gets truncated to "super_orchestrator-0.5.1/src/misc.rs"
-pub struct DisplayShortLocation<'a>(pub &'a Location<'a>);
-impl Debug for DisplayShortLocation<'_> {
-    /// Has terminal styling in alternate mode
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            let underline = Style::new().underline();
+fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    // in reverse order of a typical stack, I don't want to have to scroll up to see
+    // the more specific errors
+    let mut s = String::new();
+    let mut tmp = String::new();
+    let mut first = true;
+    for (i, e) in this.iter().enumerate().rev() {
+        s.clear();
+        if first {
+            // this we do to better interact with `Error: ` etc since this is going to be a
+            // list anyways, some other libraries do this as well
+            write!(s, "\n")?;
+        }
+        let is_unit_err = e.downcast_ref::<UnitError>().is_some();
+        let is_last = i == 0;
+        if is_unit_err {
+            if e.get_location().is_none() {
+                continue;
+            }
+        } else {
+            // TODO can we get rid of the allocated temporaries?
+            tmp.clear();
+            write!(tmp, "{}", e.get_err())?;
+            // if there are vt100 styling characters already in the output, do not apply
+            // styling
+            if (!style) || tmp.contains('\u{1b}') {
+                write!(s, "    {}", tmp)?;
+            } else {
+                let color = Style::new().color(CssColors::IndianRed);
+                write!(s, "    {}", tmp.style(color))?;
+            }
+        }
+        if let Some(l) = e.get_location() {
+            // if the current length plus the location length (the +8 is from the space,
+            // colon, and 4 digits for line and 2 for column) is more than 80 then split up
+            if (s.len() + l.file().len() + 8) > 80 {
+                // split up
+                write!(s, "\n  at ")?;
+            } else if !is_unit_err {
+                write!(s, " at ")?;
+            } else {
+                write!(s, "  at ")?;
+            }
+            let dimmed = Style::new().dimmed();
             let bold = Style::new().bold();
 
-            f.write_fmt(format_args!(
-                "{} {}:{}",
-                shorten_location(self.0.file()).style(underline),
-                self.0.line().style(bold),
-                self.0.column().style(bold),
-            ))
-        } else {
-            f.write_fmt(format_args!(
-                "{} {}:{}",
-                shorten_location(self.0.file()),
-                self.0.line(),
-                self.0.column(),
-            ))
+            tmp.clear();
+            write!(tmp, "{}:{}", l.line(), l.column())?;
+
+            if style {
+                write!(
+                    s,
+                    "{} {}",
+                    shorten_location(l.file()).style(dimmed),
+                    tmp.style(bold)
+                )?;
+            } else {
+                write!(s, "{} {}", shorten_location(l.file()), tmp)?;
+            }
         }
+        if !is_last {
+            write!(s, "\n")?;
+        }
+        f.write_fmt(format_args!("{s}"))?;
+        first = false;
     }
-}
-impl Display for DisplayShortLocation<'_> {
-    /// Same as `Debug`
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self, f)
-    }
+    Ok(())
 }
 
 impl Debug for Error {
     /// Has terminal styling
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // in reverse order of a typical stack, I don't want to have to scroll up to see
-        // the more specific errors
-        let mut s = String::new();
-        let mut tmp = String::new();
-        let mut first = true;
-        for (i, e) in self.iter().enumerate().rev() {
-            s.clear();
-            if first {
-                // this we do to better interact with `Error: ` etc since this is going to be a
-                // list anyways, some other libraries do this as well
-                write!(s, "\n")?;
-            }
-            let is_unit_err = e.downcast_ref::<UnitError>().is_some();
-            let is_last = i == 0;
-            if is_unit_err {
-                if e.get_location().is_none() {
-                    continue;
-                }
-            } else {
-                // TODO can we get rid of the allocated temporaries?
-                tmp.clear();
-                write!(tmp, "{}", e.get_err())?;
-                // if there are vt100 styling characters, do not apply styling
-                if tmp.contains('\u{1b}') {
-                    write!(s, "    {}", tmp)?;
-                } else {
-                    let color = Style::new().color(CssColors::IndianRed);
-                    write!(s, "    {}", tmp.style(color))?;
-                }
-            }
-            if let Some(l) = e.get_location() {
-                // if the current length plus the location length (the +8 is from the space,
-                // colon, and 4 digits for line and 2 for column) is more than 80 then split up
-                if (s.len() + l.file().len() + 8) > 80 {
-                    // split up
-                    write!(s, "\n  at ")?;
-                } else if !is_unit_err {
-                    write!(s, " at ")?;
-                } else {
-                    write!(s, "  at ")?;
-                }
-                let dimmed = Style::new().dimmed();
-                let bold = Style::new().bold();
-
-                tmp.clear();
-                write!(tmp, "{}:{}", l.line(), l.column())?;
-
-                write!(s, "{} {}", shorten_location(l.file()).style(dimmed), tmp.style(bold))?;
-            }
-            if !is_last {
-                write!(s, "\n")?;
-            }
-            f.write_fmt(format_args!("{s}"))?;
-            first = false;
-        }
-        Ok(())
+        common_format(self, true, f)
     }
 }
 
 impl Display for Error {
     /// Same as `Debug` but without terminal styling
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // in reverse order of a typical stack, I don't want to have to scroll up to see
-        // the more specific errors
-        let mut s = String::new();
-        for (i, e) in self.iter().enumerate().rev() {
-            s.clear();
-            let is_unit_err = e.downcast_ref::<UnitError>().is_some();
-            let is_last = i == 0;
-            if is_unit_err {
-                if e.get_location().is_none() {
-                    continue;
-                }
-            } else {
-                write!(s, "{}", e.get_err())?;
-            }
-            if let Some(l) = e.get_location() {
-                // if the current length plus the location length (the +8 is from the space,
-                // colon, and 4 digits for line and 2 for column) is more than 80 then split up
-                if (s.len() + l.file().len() + 8) > 80 {
-                    // split up
-                    write!(s, "\n")?;
-                } else if !is_unit_err {
-                    write!(s, " ")?;
-                }
-
-                write!(
-                    s,
-                    "at {} {}:{}",
-                    shorten_location(l.file()),
-                    l.line(),
-                    l.column(),
-                )?;
-            }
-            if !is_last {
-                write!(s, ",\n")?;
-            }
-            f.write_fmt(format_args!("{s}"))?
-        }
-        Ok(())
+        common_format(self, false, f)
     }
 }
