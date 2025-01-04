@@ -1,6 +1,6 @@
-use alloc::boxed::Box;
+use core::{fmt::Display, mem};
 
-use crate::{Error, ErrorKind};
+use crate::{Error, StackableErrorTrait};
 
 /// Conversion to and addition to the stack of a
 /// [stackable_error::Error](crate::Error).
@@ -9,18 +9,55 @@ use crate::{Error, ErrorKind};
 pub trait StackableErr {
     type Output;
 
-    /// Pushes the result of `f` and location information to the error stack
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output;
-
-    /// Pushes the result of `f` without location information to the error stack
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output;
-
     /// Pushes just location information to the error stack
     fn stack(self) -> Self::Output;
 
     /// Only converts to `Self::Output` and pushes it on the error stack
     fn stack_locationless(self) -> Self::Output;
+
+    /// Pushes the result of `f` and location information to the error stack
+    fn stack_err<E: Display + Send + Sync + 'static>(self, e: E) -> Self::Output;
+
+    /// Pushes `e` and location information to the error stack
+    fn stack_err_with<E: Display + Send + Sync + 'static, F: FnOnce() -> E>(
+        self,
+        f: F,
+    ) -> Self::Output;
+
+    /// Pushes `e` without location information to the error stack
+    fn stack_err_locationless<E: Display + Send + Sync + 'static>(self, e: E) -> Self::Output;
+
+    /// Pushes the result of `f` without location information to the error stack
+    fn stack_err_with_locationless<E: Display + Send + Sync + 'static, F: FnOnce() -> E>(
+        self,
+        f: F,
+    ) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err] which can be used for easier
+    /// translation to and from the `eyre` crate
+    fn wrap_err<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err_with] which can be used for
+    /// easier translation to and from the `eyre` crate
+    fn wrap_err_with<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err] which can be used for easier
+    /// translation to and from the `anyhow` crate
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output;
+
+    /// Alternate for [StackableErr::stack_err_with] which can be used for
+    /// easier translation to and from the `anyhow` crate
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output;
 }
+
+// TODO when trait aliases are stabilized
+//pub trait WrapErr = StackableErr;
 
 // NOTE: trait conflicts prevent us from implementing some desirable cases.
 // However, if specialization allows us to one day implement more, we have to be
@@ -38,23 +75,8 @@ pub trait StackableErr {
 // `impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for
 // core::result::Result<T, E>` impl on any `Into<ErrorKind>` types
 
-impl<T> StackableErr for core::result::Result<T, Error> {
+/*impl<T> StackableErr for core::result::Result<T, Error> {
     type Output = core::result::Result<T, Error>;
-
-    #[track_caller]
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        match self {
-            Ok(o) => Ok(o),
-            Err(e) => Err(e.add_kind(f())),
-        }
-    }
-
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        match self {
-            Ok(o) => Ok(o),
-            Err(e) => Err(e.add_kind_locationless(f())),
-        }
-    }
 
     #[track_caller]
     fn stack(self) -> Self::Output {
@@ -67,60 +89,160 @@ impl<T> StackableErr for core::result::Result<T, Error> {
     fn stack_locationless(self) -> Self::Output {
         self
     }
-}
-
-impl<T, E: core::error::Error + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
-    type Output = core::result::Result<T, Error>;
 
     #[track_caller]
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
+    fn stack_err<E: Display + Send + Sync + 'static>(self, e: E) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            // location added by boxing
-            Err(err) => Err(Error::from_box(Box::new(err)).add_kind_locationless(f())),
+            Err(e) => Err(e.add_kind(f())),
         }
     }
 
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
+    fn stack_err_locationless<E: Display + Send + Sync + 'static>(self, e: E) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(err) => Err(Error::from_box_locationless(Box::new(err)).add_kind_locationless(f())),
+            Err(e) => Err(e.add_kind_locationless(f())),
         }
     }
+}*/
+
+#[track_caller]
+fn stack<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
+    let tmp: &mut dyn StackableErrorTrait = &mut err;
+    if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
+        tmp.push();
+        // TODO does the allocation here optimize away or can we do something about
+        // this?
+        mem::take(tmp)
+    } else {
+        Error::from_err(err)
+    }
+}
+
+fn stack_locationless<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
+    let tmp: &mut dyn StackableErrorTrait = &mut err;
+    if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
+        mem::take(tmp)
+    } else {
+        Error::from_err_locationless(err)
+    }
+}
+
+#[track_caller]
+fn stack_err<E: Display + Send + Sync + 'static, E1: Display + Send + Sync + 'static>(
+    mut err: E,
+    e: E1,
+) -> Error {
+    let tmp: &mut dyn StackableErrorTrait = &mut err;
+    if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
+        tmp.push_err(e);
+        mem::take(tmp)
+    } else {
+        // the location should be attached to the later part
+        Error::from_err_locationless(err).add_err(e)
+    }
+}
+
+#[track_caller]
+fn stack_err_locationless<
+    E: Display + Send + Sync + 'static,
+    E1: Display + Send + Sync + 'static,
+>(
+    mut err: E,
+    e: E1,
+) -> Error {
+    let tmp: &mut dyn StackableErrorTrait = &mut err;
+    if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
+        tmp.push_err_locationless(e);
+        mem::take(tmp)
+    } else {
+        Error::from_err_locationless(err).add_err_locationless(e)
+    }
+}
+
+impl<T, E: Display + Send + Sync + 'static> StackableErr for core::result::Result<T, E> {
+    type Output = core::result::Result<T, Error>;
 
     #[track_caller]
     fn stack(self) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(err) => Err(Error::from_box(Box::new(err))),
+            Err(err) => Err(stack(err)),
         }
     }
 
     fn stack_locationless(self) -> Self::Output {
         match self {
             Ok(o) => Ok(o),
-            Err(err) => Err(Error::from_box_locationless(Box::new(err))),
+            Err(err) => Err(stack_locationless(err)),
         }
+    }
+
+    #[track_caller]
+    fn stack_err<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        match self {
+            Ok(o) => Ok(o),
+            Err(err) => Err(stack_err(err, e)),
+        }
+    }
+
+    #[track_caller]
+    fn stack_err_with<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        match self {
+            Ok(o) => Ok(o),
+            Err(err) => Err(stack_err(err, f())),
+        }
+    }
+
+    fn stack_err_locationless<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        match self {
+            Ok(o) => Ok(o),
+            Err(err) => Err(stack_err_locationless(err, e)),
+        }
+    }
+
+    fn stack_err_with_locationless<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        match self {
+            Ok(o) => Ok(o),
+            Err(err) => Err(stack_err_locationless(err, f())),
+        }
+    }
+
+    #[track_caller]
+    fn wrap_err<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn wrap_err_with<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
     }
 }
 
 impl<T> StackableErr for Option<T> {
     type Output = core::result::Result<T, Error>;
-
-    #[track_caller]
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        match self {
-            Some(o) => Ok(o),
-            None => Err(Error::from_kind(f())),
-        }
-    }
-
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        match self {
-            Some(o) => Ok(o),
-            None => Err(Error::from_kind_locationless(f())),
-        }
-    }
 
     #[track_caller]
     fn stack(self) -> Self::Output {
@@ -136,56 +258,129 @@ impl<T> StackableErr for Option<T> {
             None => Err(Error::empty()),
         }
     }
+
+    #[track_caller]
+    fn stack_err<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        match self {
+            Some(o) => Ok(o),
+            None => Err(Error::from_err(e)),
+        }
+    }
+
+    #[track_caller]
+    fn stack_err_with<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        match self {
+            Some(o) => Ok(o),
+            None => Err(Error::from_err(f())),
+        }
+    }
+
+    fn stack_err_locationless<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        match self {
+            Some(o) => Ok(o),
+            None => Err(Error::from_err_locationless(e)),
+        }
+    }
+
+    fn stack_err_with_locationless<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        match self {
+            Some(o) => Ok(o),
+            None => Err(Error::from_err_locationless(f())),
+        }
+    }
+
+    #[track_caller]
+    fn wrap_err<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn wrap_err_with<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
 }
 
 impl StackableErr for Error {
     type Output = core::result::Result<(), Error>;
 
     #[track_caller]
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(self.add_kind(f()))
-    }
-
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(self.add_kind_locationless(f()))
-    }
-
-    #[track_caller]
     fn stack(self) -> Self::Output {
-        Err(self.add_location())
+        Err(self.add())
     }
 
     fn stack_locationless(self) -> Self::Output {
         Err(self)
     }
-}
-
-//impl<E: core::error::Error + Send + Sync + 'static> StackableErr for E
-
-// this causes refactor issues when `T` is changed, and we can't fix this due to
-// conflicts, and this might not be good in the sense that `K0` is not wrapped
-// by anything indicating potential failure or is representing failure itself
-/*
-impl<K0: Into<ErrorKind>> StackableErr for K0 {
-    type Output = core::result::Result<(), Error>;
 
     #[track_caller]
-    fn stack_err<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        // avoid adding redundant locations
-        Err(Error::from_kind(self).add_kind_locationless(f()))
-    }
-
-    fn stack_err_locationless<K: Into<ErrorKind>, F: FnOnce() -> K>(self, f: F) -> Self::Output {
-        Err(Error::from_kind_locationless(self).add_kind_locationless(f()))
+    fn stack_err<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        Err(self.add_err(e))
     }
 
     #[track_caller]
-    fn stack(self) -> Self::Output {
-        Err(Error::from_kind(self))
+    fn stack_err_with<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        Err(self.add_err(f()))
     }
 
-    fn stack_locationless(self) -> Self::Output {
-        Err(Error::from_kind_locationless(self))
+    fn stack_err_locationless<E1: Display + Send + Sync + 'static>(self, e: E1) -> Self::Output {
+        Err(self.add_err_locationless(e))
+    }
+
+    fn stack_err_with_locationless<E1: Display + Send + Sync + 'static, F: FnOnce() -> E1>(
+        self,
+        f: F,
+    ) -> Self::Output {
+        Err(self.add_err_locationless(f()))
+    }
+
+    #[track_caller]
+    fn wrap_err<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn wrap_err_with<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
+    }
+
+    #[track_caller]
+    fn context<D: Display + Send + Sync + 'static>(self, msg: D) -> Self::Output {
+        self.stack_err(msg)
+    }
+
+    #[track_caller]
+    fn with_context<D: Display + Send + Sync + 'static, F: FnOnce() -> D>(
+        self,
+        msg: F,
+    ) -> Self::Output {
+        self.stack_err_with(msg)
     }
 }
-*/

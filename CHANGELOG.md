@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0] - 2025-01-03
+### Changes
+- All `E: Display + Send + Sync + 'static` can be used with `StackableErr` now
+- Removed `ErrorKind`, all types go in a `SmallBox` internally
+- `stack_err*` functions that take closures were renamed to `stack_err_with*`. The new `stack_err` now takes an expression directly.
+- More swap-in compatibility with `eyre` and `anyhow`
+- The error type now implements `core::error::Error`
+- The error type deliberately does not implement any `From` impls so that all initial `?`s need to be covered
+- Introduced `bail!` macro for easily creating and returning errors
+- Discovered an incredibly concise yet more distinctive format. `Debug` mode uses terminal styling.
+- The crate is now unconditionally `no_std`
+- Moved `stacked_get` and `stacked_get_mut` to this crate
+- many small improvements
+
 ## [0.6.0] - 2024-11-21
 ### Changes
 - Updates the MSRV feature to 1.81, uses the `Error` in `core` feature to make this crate no-std.

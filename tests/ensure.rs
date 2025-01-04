@@ -1,4 +1,4 @@
-use stacked_errors::{ensure_eq, ensure_ne, ErrorKind, Result};
+use stacked_errors::{ensure_eq, ensure_ne, Result, UnitError};
 
 // there are also tests in the doc tests
 #[test]
@@ -55,7 +55,7 @@ fn ensure_test() {
         ensure_eq!(String::new(), "");
         ensure_ne!("1".to_owned(), "2");
         let () = ensure_eq!(String::new(), "", "hello");
-        ensure_ne!("1".to_owned(), "2", ErrorKind::UnitError);
+        ensure_ne!("1".to_owned(), "2", UnitError {});
         Ok(0)
     }
     assert_eq!(successes().unwrap(), 0);
@@ -64,53 +64,50 @@ fn ensure_test() {
         ensure_eq!(1, 2);
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 64, col: 9 },
-ensure_eq(
+        r#"
+    ensure_eq(
  lhs: 1
  rhs: 2
-) -> equality assertion failed
-] }"#
+) -> equality assertion failed at tests/ensure.rs 64:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_eq!(1, 2, "hello");
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 79, col: 9 },
-hello
-] }"#
+        r#"
+    hello at tests/ensure.rs 78:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_ne!(2, 2);
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 91, col: 9 },
-ensure_ne(
+        r#"
+    ensure_ne(
  lhs: 2
  rhs: 2
 ) -> inequality assertion failed
-] }"#
+  at tests/ensure.rs 89:9"#
     );
 
     let fail = || -> Result<u8> {
         ensure_ne!(2, 2, "hello");
         Ok(0)
     };
+    println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        r#"Error { stack: [
-Location { file: "tests/ensure.rs", line: 106, col: 9 },
-hello
-] }"#
+        r#"
+    hello at tests/ensure.rs 104:9"#
     );
 }

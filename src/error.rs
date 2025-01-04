@@ -1,9 +1,138 @@
-use alloc::boxed::Box;
-use core::panic::Location;
+use core::{
+    any::Any,
+    fmt::{Debug, Display},
+    panic::Location,
+    slice::{Iter, IterMut},
+};
 
+use smallbox::{smallbox, SmallBox};
 use thin_vec::{thin_vec, ThinVec};
 
-use crate::ErrorKind;
+use crate::{ProbablyNotRootCauseError, TimeoutError, UnitError};
+
+/// Trait implemented for all `T: Display + Send + Sync + 'static`
+///
+/// This is a clever workaround from
+/// <https://users.rust-lang.org/t/impossible-to-use-any-combined-with-any-other-trait/85949/5>
+/// needed to enable using a type in both `dyn Display` form for displaying and
+/// in `dyn Any + Send + Sync` form for later downcasting
+pub trait StackableErrorTrait: Display + Any + Send + Sync + 'static {
+    // put as underscores and with `#[doc(hidden)]` since this this a hack
+    // implemented for all `T` that we don't want in IDEs
+    #[doc(hidden)]
+    fn _as_any(&self) -> &(dyn Any + Send + Sync);
+    #[doc(hidden)]
+    fn _as_any_mut(&mut self) -> &mut (dyn Any + Send + Sync);
+    #[doc(hidden)]
+    fn _as_display(&self) -> &(dyn Display + Send + Sync);
+}
+
+impl<T: Display + Send + Sync + 'static> StackableErrorTrait for T {
+    fn _as_any(&self) -> &(dyn Any + Send + Sync) {
+        self
+    }
+
+    fn _as_any_mut(&mut self) -> &mut (dyn Any + Send + Sync) {
+        self
+    }
+
+    fn _as_display(&self) -> &(dyn Display + Send + Sync) {
+        self
+    }
+}
+
+pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
+    fn get_err(&self) -> &(impl Display + Send + Sync + 'static);
+
+    fn get_location(&self) -> Option<&'static Location<'static>>;
+
+    // TODO the `eyre` crate has found a way to get this
+    // to work without the result being boxed
+
+    // Attempts to downcast to a concrete type.
+    //fn downcast<E: Display + Send + Sync + 'static>(self) -> Result<E, Self>;
+
+    fn downcast_ref<E>(&self) -> Option<&E>
+    where
+        E: Display + Send + Sync + 'static;
+
+    fn downcast_mut<E>(&mut self) -> Option<&mut E>
+    where
+        E: Display + Send + Sync + 'static;
+}
+
+/// NOTE: this type is only public because `impl Trait` in associated types is
+/// unstable, only `StackedErrorDowncast` methods are intended to be used on
+/// this.
+// The specific type that `Error` uses in its stack. NOTE the `error_kind_size`
+// should be updated whenever this is changed. pub type ErrorBox = Box<dyn
+// Display + Send + Sync + 'static>;
+pub struct ErrorItem {
+    b: SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,
+    l: Option<&'static Location<'static>>,
+}
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn error_kind_size() {
+    assert_eq!(core::mem::size_of::<ErrorItem>(), 56);
+}
+
+impl ErrorItem {
+    pub fn new<E: Display + Send + Sync + 'static>(
+        e: E,
+        l: Option<&'static Location<'static>>,
+    ) -> Self {
+        Self { b: smallbox!(e), l }
+    }
+}
+
+impl Debug for ErrorItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("{}", self.get_err()))?;
+        if let Some(location) = self.get_location() {
+            f.write_fmt(format_args!(" {location:?}"))?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for ErrorItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl StackedErrorDowncast for ErrorItem {
+    fn get_err(&self) -> &(impl Display + Send + Sync + 'static) {
+        &self.b
+    }
+
+    fn get_location(&self) -> Option<&'static Location<'static>> {
+        self.l
+    }
+
+    //fn downcast<E: Display + Send + Sync + 'static>(self) -> Result<E, Self> {
+    //    self.0.as_any().
+    //}
+
+    // the borrows here are actually needed for `_as_any` to get the correct thing
+    #[allow(clippy::needless_borrow)]
+    fn downcast_ref<E>(&self) -> Option<&E>
+    where
+        E: Display + Send + Sync + 'static,
+    {
+        (&*self.b)._as_any().downcast_ref()
+    }
+
+    #[allow(clippy::needless_borrow)]
+    fn downcast_mut<E>(&mut self) -> Option<&mut E>
+    where
+        E: Display + Send + Sync + 'static,
+    {
+        (&mut self.b)._as_any_mut().downcast_mut()
+    }
+}
 
 /// An error struct intended for high level error propogation with programmable
 /// backtraces
@@ -11,33 +140,20 @@ use crate::ErrorKind;
 /// For lower level error propogation, you should still use ordinary [Option]
 /// and [Result] with domain-specific enums, it is only when using OS-level
 /// functions or when multiple domains converge that this is intended to be
-/// used. This has an internal stack for different kinds of arbitrary lower
-/// level errors and [Location](core::panic::Location)s. When used with the
+/// used. This has an internal stack for different kinds of arbitrary errors and
+/// [Location](core::panic::Location)s. When used with the
 /// [StackableErr](crate::StackableErr) trait, this enables easy conversion and
 /// software defined backtraces for better `async` debugging. See the crate docs
 /// for more.
-///
-/// Note that due to trait conflicts and not wanting users to accidentally
-/// wastefully embed `stacked_errors::Error` in a `BoxedErr` of another
-/// `stacked_errors::Error`, `stacked_errors::Error` itself does not actually
-/// implement [core::error::Error]. This does not pose a problem in most cases
-/// since it is intended to be the highest level of error that is directly
-/// returned or panicked on. However, if a user needs the end result struct to
-/// implement [core::error::Error], they can use the
-/// [StackedError](crate::StackedError) wrapper.
-pub struct Error {
+pub struct StackedError {
     /// Using a ThinVec has advantages such as taking as little space as
     /// possible on the stack (since we are commiting to some indirection at
     /// this point), and having the niche optimizations applied to things like
     /// `Result<(), Error>`.
-    pub stack: ThinVec<(ErrorKind, Option<&'static Location<'static>>)>,
+    stack: ThinVec<ErrorItem>,
 }
 
-/// Wraps around [stacked_errors::Error](crate::Error) to implement
-/// [core::error::Error], since [stacked_errors::Error](crate::Error) itself
-/// cannot implement the trait.
-#[derive(Debug, thiserror::Error)]
-pub struct StackedError(pub Error);
+pub type Error = StackedError;
 
 /// Note: in most cases you can use `Error::from` or a call from `StackableErr`
 /// instead of these functions.
@@ -52,112 +168,55 @@ impl Error {
     /// Returns an error stack with just a `UnitError` and location information
     #[track_caller]
     pub fn new() -> Self {
-        Self::from_kind(ErrorKind::UnitError)
+        Self::from_err(UnitError {})
     }
 
-    /// Returns an error stack with just `kind`. The `impl From<_> for Error`
-    /// implementations can usually be used in place of this.
     #[track_caller]
-    pub fn from_kind<K: Into<ErrorKind>>(kind: K) -> Self {
+    pub fn from_err<E: Display + Send + Sync + 'static>(e: E) -> Self {
         Self {
-            stack: thin_vec![(kind.into(), Some(Location::caller()))],
+            stack: thin_vec![ErrorItem::new(e, Some(Location::caller()))],
         }
     }
 
-    /// Same as [Error::from_kind] but without location.
-    pub fn from_kind_locationless<K: Into<ErrorKind>>(kind: K) -> Self {
+    pub fn from_err_locationless<E: Display + Send + Sync + 'static>(e: E) -> Self {
         Self {
-            stack: thin_vec![(kind.into(), None)],
+            stack: thin_vec![ErrorItem::new(e, None)],
         }
     }
 
-    /// Returns an error stack with just a `BoxedErr`.
+    /// Only pushes `track_caller` location to the stack
     #[track_caller]
-    pub fn from_box(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
-        Self::from_kind(ErrorKind::BoxedError(e))
-    }
-
-    /// Same as [Error::from_box] but without location.
-    pub fn from_box_locationless(e: Box<dyn core::error::Error + Send + Sync>) -> Self {
-        Self::from_kind_locationless(ErrorKind::BoxedError(e))
-    }
-
-    /// Returns an error stack with a `BoxedError` around `e`, and location
-    /// info. [Error::from_kind] or [Error::from] is more efficient and should
-    /// be used instead if the type implements `Into<ErrorKind>`.
-    #[track_caller]
-    pub fn box_from<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
-        Self {
-            stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), Some(Location::caller()))],
-        }
-    }
-
-    /// Same as [Error::box_from] but without location.
-    pub fn box_from_locationless<E: core::error::Error + Send + Sync + 'static>(e: E) -> Self {
-        Self {
-            stack: thin_vec![(ErrorKind::BoxedError(Box::new(e)), None)],
-        }
-    }
-
-    /// Adds `kind` to the error stack alongside location information. Use
-    /// `StackableErr` instead of this if anything expensive in creating the
-    /// error is involved, because `stack_err` uses a closure analogous to
-    /// `ok_or_else`.
-    #[track_caller]
-    pub fn add_kind<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
-        self.stack.push((kind.into(), Some(Location::caller())));
-        self
-    }
-
-    /// Same as [Error::add_kind] but without location.
-    pub fn add_kind_locationless<K: Into<ErrorKind>>(mut self, kind: K) -> Self {
-        self.stack.push((kind.into(), None));
-        self
-    }
-
-    /// Adds `e` to the error stack alongside location information. Use
-    /// `StackableErr` instead of this if anything expensive in creating the
-    /// error is involved, because `stack_err` uses a closure analogous to
-    /// `ok_or_else`.
-    #[track_caller]
-    pub fn add_box(mut self, e: Box<dyn core::error::Error + Send + Sync>) -> Self {
-        self.stack
-            .push((ErrorKind::BoxedError(e), Some(Location::caller())));
-        self
-    }
-
-    /// Same as [Error::add_box] but without location.
-    pub fn add_box_locationless(mut self, e: Box<dyn core::error::Error + Send + Sync>) -> Self {
-        self.stack.push((ErrorKind::BoxedError(e), None));
-        self
-    }
-
-    /// Boxes a type implementing `core::error::Error + Send + Sync + 'static`
-    /// and adds it with location data to the stack. [Error::add_kind] is
-    /// preferred if possible, this is a shorthand for
-    /// `stack.add_kind(ErrorKind::from_box(Box::new(e)))` where the error does
-    /// not implement `Into<ErrorKind>` and needs to be boxed.
-    #[track_caller]
-    pub fn box_and_add<E: core::error::Error + Send + Sync + 'static>(mut self, e: E) -> Self {
-        self.stack
-            .push((ErrorKind::BoxedError(Box::new(e)), Some(Location::caller())));
-        self
-    }
-
-    /// Same as [Error::box_and_add] but without location.
-    pub fn box_and_add_locationless<E: core::error::Error + Send + Sync + 'static>(
-        mut self,
-        e: E,
-    ) -> Self {
-        self.stack.push((ErrorKind::BoxedError(Box::new(e)), None));
-        self
+    pub fn push(&mut self) {
+        self.push_err(UnitError {})
     }
 
     /// Only adds `track_caller` location to the stack
     #[track_caller]
-    pub fn add_location(mut self) -> Self {
-        self.stack
-            .push((ErrorKind::UnitError, Some(Location::caller())));
+    pub fn add(self) -> Self {
+        self.add_err(UnitError {})
+    }
+
+    /// Pushes error `e` with location to the stack
+    #[track_caller]
+    pub fn push_err<E: Display + Send + Sync + 'static>(&mut self, e: E) {
+        self.stack.push(ErrorItem::new(e, Some(Location::caller())));
+    }
+
+    /// Adds error `e` with location to the stack
+    #[track_caller]
+    pub fn add_err<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
+        self.push_err(e);
+        self
+    }
+
+    /// Pushes error `e` without location information to the stack
+    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(&mut self, e: E) {
+        self.stack.push(ErrorItem::new(e, None));
+    }
+
+    /// Adds error `e` without location information to the stack
+    pub fn add_err_locationless<E: Display + Send + Sync + 'static>(mut self, e: E) -> Self {
+        self.push_err_locationless(e);
         self
     }
 
@@ -170,19 +229,19 @@ impl Error {
     /// Returns a base `TimeoutError` error
     #[track_caller]
     pub fn timeout() -> Self {
-        Self::from_kind(ErrorKind::TimeoutError)
+        Self::from_err(TimeoutError {})
     }
 
     /// Returns a base `ProbablyNotRootCauseError` error
     #[track_caller]
     pub fn probably_not_root_cause() -> Self {
-        Self::from_kind(ErrorKind::ProbablyNotRootCauseError)
+        Self::from_err(ProbablyNotRootCauseError {})
     }
 
     /// Returns if a `TimeoutError` is in the error stack
     pub fn is_timeout(&self) -> bool {
-        for (error, _) in &self.stack {
-            if matches!(error, ErrorKind::TimeoutError) {
+        for e in &self.stack {
+            if e.downcast_ref::<TimeoutError>().is_some() {
                 return true
             }
         }
@@ -191,12 +250,40 @@ impl Error {
 
     /// Returns if a `ProbablyNotRootCauseError` is in the error stack
     pub fn is_probably_not_root_cause(&self) -> bool {
-        for (error, _) in &self.stack {
-            if matches!(error, ErrorKind::ProbablyNotRootCauseError) {
+        for e in &self.stack {
+            if e.downcast_ref::<ProbablyNotRootCauseError>().is_some() {
                 return true
             }
         }
         false
+    }
+
+    /// Iteration over the [StackedErrorDowncast] items of `self`
+    pub fn iter(&self) -> Iter<ErrorItem> {
+        self.stack.iter()
+    }
+
+    /// Mutable iteration over the [StackedErrorDowncast] items of `self`
+    pub fn iter_mut(&mut self) -> IterMut<ErrorItem> {
+        self.stack.iter_mut()
+    }
+}
+
+impl<'a> IntoIterator for &'a Error {
+    type IntoIter = Iter<'a, ErrorItem>;
+    type Item = &'a ErrorItem;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Error {
+    type IntoIter = IterMut<'a, ErrorItem>;
+    type Item = &'a mut ErrorItem;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 
@@ -206,3 +293,10 @@ impl Default for Error {
         Error::new()
     }
 }
+
+impl core::error::Error for Error {}
+
+// there is a blanket impl collision, but I don't think we want to impl this
+// anyway since without it it makes sure we have `stack` calls at the error
+// origin
+/* impl<E: Display + Send + Sync + 'static> From<E> for Error */

@@ -1,6 +1,6 @@
 [package]
 name = "stacked_errors"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 # Change the test suite version when changing this.
 rust-version = "1.81"
@@ -11,16 +11,17 @@ repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
 categories = ["data-structures", "no-std"]
 keywords = ["error", "error-handling", "stacked-errors", "no_std"]
-description = "high level error propogation with programmed backtraces"
+description = "high level error propogation with software controlled backtraces"
 
 [dependencies]
+smallbox = { version = "0.8", default-features = false }
 thin-vec = "0.2"
 thiserror = "2"
+owo-colors = { version = "4.1", default-features = false }
 
 [dev-dependencies]
 ron = { version = "0.8", default-features = false }
+serde_json = { version = "1.0" }
 
 [features]
-default = ["std"]
-# Enables some impls with `std::io::Error`
-std = []
+default = []
