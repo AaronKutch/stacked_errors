@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.7.1] - 2025-03-28
+### Fixes
+- Fixed dumb mistake where `#![no_std]` had not actually been added
+
 ## [0.7.0] - 2025-01-03
 ### Changes
 - All `E: Display + Send + Sync + 'static` can be used with `StackableErr` now
