@@ -1,6 +1,5 @@
-use alloc::{fmt, fmt::Debug};
-use core::fmt::Display;
-use std::fmt::Write;
+use alloc::{fmt, fmt::Debug, string::String};
+use core::fmt::{Display, Write};
 
 use owo_colors::{CssColors, OwoColorize, Style};
 
