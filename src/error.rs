@@ -259,12 +259,12 @@ impl Error {
     }
 
     /// Iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter(&self) -> Iter<ErrorItem> {
+    pub fn iter(&self) -> Iter<'_, ErrorItem> {
         self.stack.iter()
     }
 
     /// Mutable iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter_mut(&mut self) -> IterMut<ErrorItem> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, ErrorItem> {
         self.stack.iter_mut()
     }
 }
