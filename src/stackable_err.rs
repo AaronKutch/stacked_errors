@@ -15,10 +15,10 @@ pub trait StackableErr {
     /// Only converts to `Self::Output` and pushes it on the error stack
     fn stack_locationless(self) -> Self::Output;
 
-    /// Pushes the result of `f` and location information to the error stack
+    /// Pushes `e` and location information to the error stack
     fn stack_err<E: Display + Send + Sync + 'static>(self, e: E) -> Self::Output;
 
-    /// Pushes `e` and location information to the error stack
+    /// Pushes the result of `f` and location information to the error stack
     fn stack_err_with<E: Display + Send + Sync + 'static, F: FnOnce() -> E>(
         self,
         f: F,
