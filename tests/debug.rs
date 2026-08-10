@@ -29,30 +29,31 @@ fn error_debug() {
         .stack_err_locationless(Box::new(ron::from_str::<bool>("invalid").unwrap_err()));
     println!("{tmp:?}");
     if cfg!(windows) {
-    assert_eq!(
-        format!("{}", tmp.unwrap_err()),
-        r#"
+        assert_eq!(
+            format!("{}", tmp.unwrap_err()),
+            r#"
     1:1: Expected boolean
     1:1: Expected boolean
     test long ___________________________________________________________________
   at tests\debug.rs 27:10
   at tests\debug.rs 25:10
     hello at tests\debug.rs 7:13"#
-            .to_owned()
-    );
+                .to_owned()
+        );
     } else {
-    assert_eq!(
-        format!("{}", tmp.unwrap_err()),
-        convert(r#"
+        assert_eq!(
+            format!("{}", tmp.unwrap_err()),
+            convert(
+                r#"
     1:1: Expected boolean
     1:1: Expected boolean
     test long ___________________________________________________________________
   at tests/debug.rs 27:10
   at tests/debug.rs 25:10
     hello at tests/debug.rs 7:13"#
-    )
-    );
-}
+            )
+        );
+    }
 }
 
 pub fn convert(s: &str) -> String {

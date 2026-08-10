@@ -67,11 +67,13 @@ fn ensure_test() {
     println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        convert(r#"
+        convert(
+            r#"
     ensure_eq(
  lhs: 1
  rhs: 2
-) -> equality assertion failed at tests/ensure.rs 64:9"#)
+) -> equality assertion failed at tests/ensure.rs 64:9"#
+        )
     );
 
     let fail = || -> Result<u8> {
@@ -81,8 +83,10 @@ fn ensure_test() {
     println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        convert(r#"
-    hello at tests/ensure.rs 78:9"#)
+        convert(
+            r#"
+    hello at tests/ensure.rs 80:9"#
+        )
     );
 
     let fail = || -> Result<u8> {
@@ -92,12 +96,14 @@ fn ensure_test() {
     println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        convert(r#"
+        convert(
+            r#"
     ensure_ne(
  lhs: 2
  rhs: 2
 ) -> inequality assertion failed
-  at tests/ensure.rs 89:9"#)
+  at tests/ensure.rs 93:9"#
+        )
     );
 
     let fail = || -> Result<u8> {
@@ -107,8 +113,10 @@ fn ensure_test() {
     println!("{:?}", fail().unwrap_err());
     assert_eq!(
         format!("{}", fail().unwrap_err()),
-        convert(r#"
-    hello at tests/ensure.rs 104:9"#)
+        convert(
+            r#"
+    hello at tests/ensure.rs 110:9"#
+        )
     );
 }
 

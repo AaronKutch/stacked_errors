@@ -242,7 +242,7 @@ impl Error {
     pub fn is_timeout(&self) -> bool {
         for e in &self.stack {
             if e.downcast_ref::<TimeoutError>().is_some() {
-                return true
+                return true;
             }
         }
         false
@@ -252,7 +252,7 @@ impl Error {
     pub fn is_probably_not_root_cause(&self) -> bool {
         for e in &self.stack {
             if e.downcast_ref::<ProbablyNotRootCauseError>().is_some() {
-                return true
+                return true;
             }
         }
         false
