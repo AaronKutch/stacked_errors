@@ -16,8 +16,11 @@ jobs:
         run: |
           rustup set profile minimal
           rustup default nightly
+          rustup target add riscv32i-unknown-none-elf
       - name: Run test suite
+        # The `riscv32i` build is needed to actually detect if the crate is no_std.
         run: |
+          cargo b --target=riscv32i-unknown-none-elf
           cargo test
           cargo test --release
 

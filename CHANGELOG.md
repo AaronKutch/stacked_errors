@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.2] - 2026-08-10
+### Fixes
+- Fixed future breakage from the macros on nightly (https://github.com/rust-lang/rust/issues/79813)
+- Fixed that the crate still wasn't no_std because of dependencies, CI now actually builds for a no_std target
+
 ## [0.7.1] - 2025-03-28
 ### Fixes
 - Fixed dumb mistake where `#![no_std]` had not actually been added

@@ -20,8 +20,8 @@ default = []
 [dependencies]
 owo-colors = { version = "4.1", default-features = false }
 smallbox = { version = "0.8", default-features = false }
-thin-vec = "0.2"
-thiserror = "2"
+thin-vec = { version = "0.2", default-features = false }
+thiserror = { version = "2", default-features = false }
 
 [dev-dependencies]
 ron = { version = "0.12", default-features = false }
