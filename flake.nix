@@ -35,7 +35,7 @@
         rust-msrv =
           (pkgs.fenix.toolchainOf {
             channel = "1.81.0";
-            sha256 = "sha256-X/4ZBHO3iW0fOenQ3foEvscgAPJYl2abspaBThDOukI=";
+            sha256 = "sha256-VZZnlyP69+Y3crrLHQyJirqlHrTtGTsyiSnZB8jEvVo=";
           }).toolchain;
 
         commonTools = with pkgs; [
