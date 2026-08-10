@@ -4,13 +4,13 @@
 #[macro_export]
 macro_rules! bail {
     ($msg:literal $(,)?) => {
-        return Err($crate::__private::format_err($crate::__private::format_args!($msg)))
+        return $crate::__private::Err($crate::__private::format_err($crate::__private::format_args!($msg)))
     };
     ($err:expr $(,)?) => {
-        return Err($crate::Error::from_err($err))
+        return $crate::__private::Err($crate::Error::from_err($err))
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return Err($crate::Error::from_err($crate::__private::format!($fmt, $($arg)*)))
+        return $crate::__private::Err($crate::Error::from_err($crate::__private::format!($fmt, $($arg)*)))
     };
 }
 
@@ -18,15 +18,15 @@ macro_rules! bail {
 #[macro_export]
 macro_rules! bail_locationless {
     ($msg:literal $(,)?) => {
-        return Err($crate::__private::format_err_locationless(
+        return $crate::__private::Err($crate::__private::format_err_locationless(
             $crate::__private::format_args!($msg)
         ))
     };
     ($err:expr $(,)?) => {
-        return Err($crate::Error::from_err_locationless($err))
+        return $crate::__private::Err($crate::Error::from_err_locationless($err))
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return Err($crate::Error::from_err_locationless(
+        return $crate::__private::Err($crate::Error::from_err_locationless(
             $crate::__private::format!($fmt, $($arg)*)
         ))
     };
@@ -99,7 +99,7 @@ macro_rules! anyhow {
 macro_rules! ensure {
     ($expr:expr) => {
         if !$expr {
-            return Err($crate::Error::from_err($crate::__private::concat!(
+            return $crate::__private::Err($crate::Error::from_err($crate::__private::concat!(
                 "ensure(",
                 $crate::__private::stringify!($expr),
                 ") -> assertion failed"
@@ -108,7 +108,7 @@ macro_rules! ensure {
     };
     ($expr:expr, $msg:expr) => {
         if !$expr {
-            return Err($crate::Error::from_err($msg));
+            return $crate::__private::Err($crate::Error::from_err($msg));
         }
     };
 }
@@ -160,11 +160,13 @@ macro_rules! ensure_eq {
             (lhs, rhs) => {
                 // use the double inversion because we are relying on `PartialEq`
                 if !(*lhs == *rhs) {
-                    return Err($crate::Error::from_err($crate::__private::format!(
-                        "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
-                        lhs,
-                        rhs,
-                    )));
+                    return $crate::__private::Err($crate::Error::from_err(
+                        $crate::__private::format!(
+                            "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
+                            lhs,
+                            rhs,
+                        ),
+                    ));
                 }
             }
         }
@@ -173,7 +175,7 @@ macro_rules! ensure_eq {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs == *rhs) {
-                    return Err($crate::Error::from_err($msg));
+                    return $crate::__private::Err($crate::Error::from_err($msg));
                 }
             }
         }
@@ -227,11 +229,13 @@ macro_rules! ensure_ne {
             (lhs, rhs) => {
                 // use the double inversion because we are relying on `PartialEq`
                 if !(*lhs != *rhs) {
-                    return Err($crate::Error::from_err($crate::__private::format!(
-                        "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
-                        lhs,
-                        rhs,
-                    )));
+                    return $crate::__private::Err($crate::Error::from_err(
+                        $crate::__private::format!(
+                            "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
+                            lhs,
+                            rhs,
+                        ),
+                    ));
                 }
             }
         }
@@ -240,7 +244,7 @@ macro_rules! ensure_ne {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs != *rhs) {
-                    return Err($crate::Error::from_err($msg));
+                    return $crate::__private::Err($crate::Error::from_err($msg));
                 }
             }
         }

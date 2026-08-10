@@ -180,7 +180,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[doc(hidden)]
 pub mod __private {
     pub use alloc::format;
-    pub use core::{concat, format_args, stringify};
+    pub use core::{concat, format_args, result::Result::Err, stringify};
 
     #[track_caller]
     pub fn format_err(args: core::fmt::Arguments<'_>) -> crate::Error {
