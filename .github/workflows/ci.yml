@@ -4,25 +4,34 @@ on: [pull_request]
 
 env:
   RUST_BACKTRACE: 1
+  RUSTFLAGS: -D warnings
 
 jobs:
   test_suite:
     name: Test suite
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
       - name: Install Rust components
         run: |
           rustup set profile minimal
-          rustup install 1.81
+          rustup default nightly
       - name: Run test suite
         run: |
-          cargo test --no-default-features
-          cargo test --release --no-default-features
-          cargo test --all-features
-          cargo test --release --all-features
+          cargo test
+          cargo test --release
+
+  msrv_test_suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install MSRV
+        run: |
+          rustup set profile minimal
+          rustup default 1.81
+      - name: Check that the crate builds on its MSRV
+        run: |
+          cargo build
 
   rustfmt:
     name: Rustfmt

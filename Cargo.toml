@@ -2,7 +2,8 @@
 name = "stacked_errors"
 version = "0.7.1"
 edition = "2021"
-# Change the test suite version when changing this.
+# when updating, update `rust-msrv` in flake.nix and `msrv_test_suite` in ci.yml, and separately
+# bump rust-toolchain.toml
 rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
