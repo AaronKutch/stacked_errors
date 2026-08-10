@@ -1,4 +1,4 @@
-use stacked_errors::{Error, Result, StackableErr};
+use stacked_errors::{Error, Result, StackableErr, UnitError};
 
 fn ex(s: &str, error: bool) -> Result<String> {
     if error {
@@ -54,6 +54,44 @@ fn error_debug() {
             )
         );
     }
+}
+
+/// `UnitError`s only contribute their location to the formatting, which has
+/// several edge cases
+#[test]
+fn unit_error_debug() {
+    // a locationless `UnitError` is skipped entirely, and must not leave behind a
+    // trailing newline from the entry after it
+    let tmp = Error::from_err_locationless(UnitError {}).add_err("hello");
+    println!("{tmp:?}");
+    assert_eq!(
+        format!("{tmp}"),
+        convert(
+            r#"
+    hello at tests/debug.rs 65:58"#
+        )
+    );
+
+    // the line splitting of a `UnitError` location must not be influenced by the
+    // length of the message of the entry before it
+    let long = "_".repeat(75);
+    let tmp = Error::new().add_err_locationless(long.clone());
+    println!("{tmp:?}");
+    assert_eq!(
+        format!("{tmp}"),
+        convert(&format!(
+            r#"
+    {long}
+  at tests/debug.rs 78:15"#
+        ))
+    );
+
+    // an empty stack formats to nothing
+    assert_eq!(format!("{}", Error::empty()), "");
+
+    // and a stack of only skipped entries also formats to nothing
+    let tmp = Error::from_err_locationless(UnitError {}).add_err_locationless(UnitError {});
+    assert_eq!(format!("{tmp}"), "");
 }
 
 pub fn convert(s: &str) -> String {

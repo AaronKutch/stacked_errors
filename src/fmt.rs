@@ -51,23 +51,21 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
     // the more specific errors
     let mut s = String::new();
     let mut tmp = String::new();
-    let mut first = true;
-    for (i, e) in this.iter().enumerate().rev() {
+    for e in this.iter().rev() {
         s.clear();
-        if first {
-            // this we do to better interact with `Error: ` etc since this is going to be a
-            // list anyways, some other libraries do this as well
-            writeln!(s)?;
-        }
+        // every entry is prefixed rather than suffixed by the newline, both because the
+        // leading newline interacts better with `Error: ` etc since this is going to be
+        // a list anyways (some other libraries do this as well), and because entries
+        // can be skipped which would otherwise make a trailing newline possible
+        writeln!(s)?;
         let is_unit_err = e.downcast_ref::<UnitError>().is_some();
-        let is_last = i == 0;
+        tmp.clear();
         if is_unit_err {
             if e.get_location().is_none() {
                 continue;
             }
         } else {
             // TODO can we get rid of the allocated temporaries?
-            tmp.clear();
             write!(tmp, "{}", e.get_err())?;
             // if there are vt100 styling characters already in the output, do not apply
             // styling
@@ -79,15 +77,16 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
             }
         }
         if let Some(l) = e.get_location() {
-            // if the current length plus the location length (the +8 is from the space,
-            // colon, and 4 digits for line and 2 for column) is more than 80 then split up
-            if (tmp.len() + l.file().len() + 8) > 80 {
-                // split up
-                write!(s, "\n  at ")?;
-            } else if !is_unit_err {
-                write!(s, " at ")?;
-            } else {
+            if is_unit_err {
+                // there is no message on this line to split away from
                 write!(s, "  at ")?;
+            } else if (tmp.len() + l.file().len() + 8) > 80 {
+                // if the message length plus the location length (the +8 is from the space,
+                // colon, and 4 digits for line and 2 for column) is more than 80 then split
+                // up
+                write!(s, "\n  at ")?;
+            } else {
+                write!(s, " at ")?;
             }
             let dimmed = Style::new().dimmed();
             let bold = Style::new().bold();
@@ -106,11 +105,7 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
                 write!(s, "{} {}", shorten_location(l.file()), tmp)?;
             }
         }
-        if !is_last {
-            writeln!(s)?;
-        }
         f.write_fmt(format_args!("{s}"))?;
-        first = false;
     }
     Ok(())
 }
