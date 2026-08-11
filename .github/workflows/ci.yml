@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # use latest nightly
       - name: Install Rust components
         run: |
           rustup set profile minimal
@@ -28,10 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # reads the `rust-version` of Cargo.toml
       - name: Install MSRV
         run: |
           rustup set profile minimal
-          rustup default 1.81
+          rustup default "$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)"
       - name: Check that the crate builds on its MSRV
         run: |
           cargo build

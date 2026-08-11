@@ -2,8 +2,9 @@
 name = "stacked_errors"
 version = "0.7.2"
 edition = "2021"
-# when updating, update `rust-msrv` in flake.nix and `msrv_test_suite` in ci.yml, and separately
-# bump rust-toolchain.toml
+# `flake.nix` and `ci.yml` read this automatically, but the `flake.lock` and
+# `flake.nix` need hash to be updated when this changes. The pinned toolchain
+# in `pinned-toolchain.toml` is bumped separately
 rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
