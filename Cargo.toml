@@ -1,18 +1,19 @@
 [package]
 name = "stacked_errors"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
-# when updating, update `rust-msrv` in flake.nix and `msrv_test_suite` in ci.yml, and separately
-# bump rust-toolchain.toml
+# `flake.nix` and `ci.yml` read this automatically, but run `nix flake update`
+# and fix any hashes. The pinned toolchain in `pinned-toolchain.toml` is
+# bumped separately.
 rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
-categories = ["data-structures", "no-std"]
+categories = ["rust-patterns", "no-std"]
 keywords = ["error", "error-handling", "stacked-errors", "no_std"]
-description = "high level error propogation with software controlled backtraces"
+description = "high level error propagation with software controlled backtraces"
 
 [features]
 default = []

@@ -159,6 +159,9 @@
 //! })
 //! ```
 
+// Disclaimer: there is some LLM generated code, but besides some localized fixes, I have kept any
+// plain vibe coding to the tests folder and extraneous things. See all commits mentioning "LLM".
+
 #![no_std]
 
 extern crate alloc;

@@ -35,6 +35,7 @@ test_all:
   {{cargo}} nextest run
   {{cargo}} nextest run --release
   {{cargo}} t --doc --all-features
+  {{cargo}} b --target=riscv32i-unknown-none-elf
   {{cargo}} machete
 
 run *ARGS:
