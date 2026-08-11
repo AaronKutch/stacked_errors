@@ -5,6 +5,7 @@ on: [pull_request]
 env:
   RUST_BACKTRACE: 1
   RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
 
 jobs:
   test_suite:
@@ -22,10 +23,12 @@ jobs:
         # The `riscv32i` build is needed to actually detect if the crate is no_std.
         run: |
           cargo b --target=riscv32i-unknown-none-elf
+          cargo doc --no-deps
           cargo test
           cargo test --release
 
-  msrv_test_suite:
+  msrv_build:
+    name: MSRV build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -42,7 +45,7 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
       # Acquire the most recent nightly with a rustfmt component
       - name: Install most recent Rustfmt
         run: |
@@ -57,7 +60,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
       # Acquire the most recent nightly with a clippy component
       - name: Install most recent Clippy
         run: |

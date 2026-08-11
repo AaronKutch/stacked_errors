@@ -22,7 +22,10 @@
         fenix-pkgs = fenix.packages.${system};
 
         # Latest nightly with the complete component set for warnings and Miri
-        rust-nightly = fenix-pkgs.complete.toolchain;
+        rust-nightly = fenix-pkgs.combine [
+          fenix-pkgs.complete.toolchain
+          fenix-pkgs.targets.riscv32i-unknown-none-elf.latest.rust-std
+        ];
 
         # A known good pinned stable with needed components
         rust-pinned = fenix-pkgs.fromToolchainFile {
