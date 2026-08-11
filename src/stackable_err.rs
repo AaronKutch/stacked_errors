@@ -111,9 +111,7 @@ fn stack<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push();
-        // TODO does the allocation here optimize away or can we do something about
-        // this?
-        mem::take(tmp)
+        mem::replace(tmp, Error::empty())
     } else {
         Error::from_err(err)
     }
@@ -122,7 +120,7 @@ fn stack<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
 fn stack_locationless<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
-        mem::take(tmp)
+        mem::replace(tmp, Error::empty())
     } else {
         Error::from_err_locationless(err)
     }
@@ -136,7 +134,7 @@ fn stack_err<E: Display + Send + Sync + 'static, E1: Display + Send + Sync + 'st
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push_err(e);
-        mem::take(tmp)
+        mem::replace(tmp, Error::empty())
     } else {
         // the location should be attached to the later part
         Error::from_err_locationless(err).add_err(e)
@@ -154,7 +152,7 @@ fn stack_err_locationless<
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push_err_locationless(e);
-        mem::take(tmp)
+        mem::replace(tmp, Error::empty())
     } else {
         Error::from_err_locationless(err).add_err_locationless(e)
     }

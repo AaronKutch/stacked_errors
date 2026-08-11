@@ -1,27 +1,29 @@
 [package]
 name = "stacked_errors"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
-# Change the test suite version when changing this.
+# `flake.nix` and `ci.yml` read this automatically, but run `nix flake update`
+# and fix any hashes. The pinned toolchain in `pinned-toolchain.toml` is
+# bumped separately.
 rust-version = "1.81"
 authors = ["Aaron Kutch <aaronkutch@att.net>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/AaronKutch/stacked_errors"
 documentation = "https://docs.rs/stacked_errors"
-categories = ["data-structures", "no-std"]
+categories = ["rust-patterns", "no-std"]
 keywords = ["error", "error-handling", "stacked-errors", "no_std"]
-description = "high level error propogation with software controlled backtraces"
-
-[dependencies]
-smallbox = { version = "0.8", default-features = false }
-thin-vec = "0.2"
-thiserror = "2"
-owo-colors = { version = "4.1", default-features = false }
-
-[dev-dependencies]
-ron = { version = "0.9", default-features = false }
-serde_json = { version = "1.0" }
+description = "high level error propagation with software controlled backtraces"
 
 [features]
 default = []
+
+[dependencies]
+owo-colors = { version = "4.1", default-features = false }
+smallbox = { version = "0.8", default-features = false }
+thin-vec = { version = "0.2", default-features = false }
+thiserror = { version = "2", default-features = false }
+
+[dev-dependencies]
+ron = { version = "0.12", default-features = false }
+serde_json = { version = "1.0" }

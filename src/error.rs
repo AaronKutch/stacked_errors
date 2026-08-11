@@ -242,7 +242,7 @@ impl Error {
     pub fn is_timeout(&self) -> bool {
         for e in &self.stack {
             if e.downcast_ref::<TimeoutError>().is_some() {
-                return true
+                return true;
             }
         }
         false
@@ -252,19 +252,19 @@ impl Error {
     pub fn is_probably_not_root_cause(&self) -> bool {
         for e in &self.stack {
             if e.downcast_ref::<ProbablyNotRootCauseError>().is_some() {
-                return true
+                return true;
             }
         }
         false
     }
 
     /// Iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter(&self) -> Iter<ErrorItem> {
+    pub fn iter(&self) -> Iter<'_, ErrorItem> {
         self.stack.iter()
     }
 
     /// Mutable iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter_mut(&mut self) -> IterMut<ErrorItem> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, ErrorItem> {
         self.stack.iter_mut()
     }
 }

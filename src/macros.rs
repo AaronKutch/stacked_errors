@@ -4,13 +4,13 @@
 #[macro_export]
 macro_rules! bail {
     ($msg:literal $(,)?) => {
-        return Err($crate::__private::format_err($crate::__private::format_args!($msg)));
+        return Err($crate::__private::format_err($crate::__private::format_args!($msg)))
     };
     ($err:expr $(,)?) => {
-        return Err($crate::Error::from_err($err));
+        return Err($crate::Error::from_err($err))
     };
     ($fmt:expr, $($arg:tt)*) => {
-        return Err($crate::Error::from_err($crate::__private::format!($fmt, $($arg)*)));
+        return Err($crate::Error::from_err($crate::__private::format!($fmt, $($arg)*)))
     };
 }
 
@@ -20,15 +20,15 @@ macro_rules! bail_locationless {
     ($msg:literal $(,)?) => {
         return Err($crate::__private::format_err_locationless(
             $crate::__private::format_args!($msg)
-        ));
+        ))
     };
     ($err:expr $(,)?) => {
-        return Err($crate::Error::from_err_locationless($err));
+        return Err($crate::Error::from_err_locationless($err))
     };
     ($fmt:expr, $($arg:tt)*) => {
         return Err($crate::Error::from_err_locationless(
             $crate::__private::format!($fmt, $($arg)*)
-        ));
+        ))
     };
 }
 
@@ -37,13 +37,13 @@ macro_rules! bail_locationless {
 #[macro_export]
 macro_rules! eyre {
     ($msg:literal $(,)?) => {
-        $crate::__private::format_err($crate::__private::format_args!($msg));
+        $crate::__private::format_err($crate::__private::format_args!($msg))
     };
     ($err:expr $(,)?) => {
-        $crate::Error::from_err($err);
+        $crate::Error::from_err($err)
     };
     ($fmt:expr, $($arg:tt)*) => {
-        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*));
+        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*))
     };
 }
 
@@ -51,13 +51,13 @@ macro_rules! eyre {
 #[macro_export]
 macro_rules! anyhow {
     ($msg:literal $(,)?) => {
-        $crate::__private::format_err($crate::__private::format_args!($msg));
+        $crate::__private::format_err($crate::__private::format_args!($msg))
     };
     ($err:expr $(,)?) => {
-        $crate::Error::from_err($err);
+        $crate::Error::from_err($err)
     };
     ($fmt:expr, $($arg:tt)*) => {
-        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*));
+        $crate::Error::from_err($crate::__private::format!($fmt, $($arg)*))
     };
 }
 
@@ -103,12 +103,12 @@ macro_rules! ensure {
                 "ensure(",
                 $crate::__private::stringify!($expr),
                 ") -> assertion failed"
-            )))
+            )));
         }
     };
     ($expr:expr, $msg:expr) => {
         if !$expr {
-            return Err($crate::Error::from_err($msg))
+            return Err($crate::Error::from_err($msg));
         }
     };
 }
@@ -164,7 +164,7 @@ macro_rules! ensure_eq {
                         "ensure_eq(\n lhs: {:?}\n rhs: {:?}\n) -> equality assertion failed",
                         lhs,
                         rhs,
-                    )))
+                    )));
                 }
             }
         }
@@ -173,7 +173,7 @@ macro_rules! ensure_eq {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs == *rhs) {
-                    return Err($crate::Error::from_err($msg))
+                    return Err($crate::Error::from_err($msg));
                 }
             }
         }
@@ -231,7 +231,7 @@ macro_rules! ensure_ne {
                         "ensure_ne(\n lhs: {:?}\n rhs: {:?}\n) -> inequality assertion failed",
                         lhs,
                         rhs,
-                    )))
+                    )));
                 }
             }
         }
@@ -240,7 +240,7 @@ macro_rules! ensure_ne {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs != *rhs) {
-                    return Err($crate::Error::from_err($msg))
+                    return Err($crate::Error::from_err($msg));
                 }
             }
         }
