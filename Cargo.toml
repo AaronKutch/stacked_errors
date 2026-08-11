@@ -1,6 +1,6 @@
 [package]
 name = "stacked_errors"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 # when updating, update `rust-msrv` in flake.nix and `msrv_test_suite` in ci.yml, and separately
 # bump rust-toolchain.toml
