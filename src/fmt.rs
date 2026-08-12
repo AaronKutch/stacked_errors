@@ -49,63 +49,60 @@ pub fn shorten_location(mut s: &str) -> &str {
 fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // in reverse order of a typical stack, I don't want to have to scroll up to see
     // the more specific errors
-    let mut s = String::new();
-    let mut tmp = String::new();
+
+    // the message of the current entry needs to be rendered ahead of being written,
+    // both to scan it for preexisting styling and to know its length
+    let mut msg = String::new();
     for e in this.iter().rev() {
-        s.clear();
+        let is_unit_err = e.downcast_ref::<UnitError>().is_some();
+        let location = e.get_location();
+        if is_unit_err && location.is_none() {
+            continue;
+        }
         // every entry is prefixed rather than suffixed by the newline, both because the
         // leading newline interacts better with `Error: ` etc since this is going to be
         // a list anyways (some other libraries do this as well), and because entries
         // can be skipped which would otherwise make a trailing newline possible
-        writeln!(s)?;
-        let is_unit_err = e.downcast_ref::<UnitError>().is_some();
-        tmp.clear();
-        if is_unit_err {
-            if e.get_location().is_none() {
-                continue;
-            }
-        } else {
-            // TODO can we get rid of the allocated temporaries?
-            write!(tmp, "{}", e.get_err())?;
+        writeln!(f)?;
+        msg.clear();
+        if !is_unit_err {
+            write!(msg, "{}", e.get_err())?;
             // if there are vt100 styling characters already in the output, do not apply
             // styling
-            if (!style) || tmp.contains('\u{1b}') {
-                write!(s, "    {}", tmp)?;
+            if (!style) || msg.contains('\u{1b}') {
+                write!(f, "    {}", msg)?;
             } else {
                 let color = Style::new().color(CssColors::IndianRed);
-                write!(s, "    {}", tmp.style(color))?;
+                write!(f, "    {}", msg.style(color))?;
             }
         }
-        if let Some(l) = e.get_location() {
+        if let Some(l) = location {
             if is_unit_err {
                 // there is no message on this line to split away from
-                write!(s, "  at ")?;
-            } else if (tmp.len() + l.file().len() + 8) > 80 {
+                write!(f, "  at ")?;
+            } else if (msg.len() + l.file().len() + 8) > 80 {
                 // if the message length plus the location length (the +8 is from the space,
                 // colon, and 4 digits for line and 2 for column) is more than 80 then split
                 // up
-                write!(s, "\n  at ")?;
+                write!(f, "\n  at ")?;
             } else {
-                write!(s, " at ")?;
+                write!(f, " at ")?;
             }
             let dimmed = Style::new().dimmed();
             let bold = Style::new().bold();
 
-            tmp.clear();
-            write!(tmp, "{}:{}", l.line(), l.column())?;
-
+            let line_column = format_args!("{}:{}", l.line(), l.column());
             if style {
                 write!(
-                    s,
+                    f,
                     "{} {}",
                     shorten_location(l.file()).style(dimmed),
-                    tmp.style(bold)
+                    line_column.style(bold)
                 )?;
             } else {
-                write!(s, "{} {}", shorten_location(l.file()), tmp)?;
+                write!(f, "{} {}", shorten_location(l.file()), line_column)?;
             }
         }
-        f.write_fmt(format_args!("{s}"))?;
     }
     Ok(())
 }
