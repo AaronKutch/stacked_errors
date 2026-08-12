@@ -63,10 +63,9 @@ pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
 
 /// The specific type that `Error` uses in its stack, should only be needed for
 /// low level manipulation and convenience.
-// NOTE the `error_kind_size`
-// should be updated whenever this is changed. pub type ErrorBox = Box<dyn
-// Display + Send + Sync + 'static>;
+#[must_use]
 pub struct StackedErrorItem {
+    // NOTE the `error_kind_size` should be updated whenever this is changed
     b: SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,
     l: Option<&'static Location<'static>>,
 }
@@ -152,6 +151,7 @@ impl StackedErrorDowncast for StackedErrorItem {
 /// succeeds, they perform the equivalent of [StackedError::chain_errors] to
 /// combine the two into a single [StackedError]. This prevents undesirable
 /// nesting and greatly improves the display when [StackedError]s combine.
+#[must_use]
 pub struct StackedError {
     /// Using a ThinVec has advantages such as taking as little space as
     /// possible on the stack (since we are commiting to some indirection at

@@ -146,7 +146,6 @@ fn stack_err<E: Display + Send + Sync + 'static, E1: Display + Send + Sync + 'st
     }
 }
 
-#[track_caller]
 fn stack_err_locationless<
     E: Display + Send + Sync + 'static,
     E1: Display + Send + Sync + 'static,
