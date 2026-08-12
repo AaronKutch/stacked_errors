@@ -133,10 +133,10 @@ impl StackedErrorDowncast for StackedErrorItem {
     }
 }
 
-/// An error struct intended for high level error propogation with programmable
+/// An error struct intended for high level error propagation with programmable
 /// backtraces
 ///
-/// For lower level error propogation, you should still use ordinary [Option]
+/// For lower level error propagation, you should still use ordinary [Option]
 /// and [Result] with domain-specific enums, it is only when using OS-level
 /// functions or when multiple domains converge that this is intended to be
 /// used. This has an internal stack for different kinds of arbitrary errors and
