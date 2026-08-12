@@ -145,6 +145,14 @@ impl StackedErrorDowncast for ErrorItem {
 /// [StackableErr](crate::StackableErr) trait, this enables easy conversion and
 /// software defined backtraces for better `async` debugging. See the crate docs
 /// for more.
+///
+/// Note: in most cases the stacking operations do the expected thing of pushing
+/// the element as-is onto the internal stack. However, the inherent addition
+/// methods on [StackedError] and the fundamental [crate::StackableErr] methods
+/// special-case [StackedError] itself by attempting to downcast it. If that
+/// succeeds, they perform the equivalent of [StackedError::chain_errors] to
+/// combine the two into a single [StackedError]. This prevents undesirable
+/// nesting and greatly improves the display when [StackedError]s combine.
 pub struct StackedError {
     /// Using a ThinVec has advantages such as taking as little space as
     /// possible on the stack (since we are commiting to some indirection at
@@ -154,6 +162,15 @@ pub struct StackedError {
 }
 
 pub type Error = StackedError;
+
+/// Sees if `e` is a `StackedError` and returns its stack without allocation
+fn take_error_stack<E: Display + Send + Sync + 'static>(e: &mut E) -> Option<ThinVec<ErrorItem>> {
+    let tmp: &mut dyn StackableErrorTrait = e;
+    // does not allocate
+    tmp._as_any_mut()
+        .downcast_mut::<Error>()
+        .map(|other| core::mem::take(&mut other.stack))
+}
 
 /// Note: in most cases you can use `Error::from` or a call from `StackableErr`
 /// instead of these functions.
@@ -172,15 +189,26 @@ impl Error {
     }
 
     #[track_caller]
-    pub fn from_err<E: Display + Send + Sync + 'static>(e: E) -> Self {
-        Self {
-            stack: thin_vec![ErrorItem::new(e, Some(Location::caller()))],
+    pub fn from_err<E: Display + Send + Sync + 'static>(mut e: E) -> Self {
+        if let Some(stack) = take_error_stack(&mut e) {
+            let mut res = Self { stack };
+            // push caller information
+            res.push();
+            res
+        } else {
+            Self {
+                stack: thin_vec![ErrorItem::new(e, Some(Location::caller()))],
+            }
         }
     }
 
-    pub fn from_err_locationless<E: Display + Send + Sync + 'static>(e: E) -> Self {
-        Self {
-            stack: thin_vec![ErrorItem::new(e, None)],
+    pub fn from_err_locationless<E: Display + Send + Sync + 'static>(mut e: E) -> Self {
+        if let Some(stack) = take_error_stack(&mut e) {
+            Self { stack }
+        } else {
+            Self {
+                stack: thin_vec![ErrorItem::new(e, None)],
+            }
         }
     }
 
@@ -198,8 +226,13 @@ impl Error {
 
     /// Pushes error `e` with location to the stack
     #[track_caller]
-    pub fn push_err<E: Display + Send + Sync + 'static>(&mut self, e: E) {
-        self.stack.push(ErrorItem::new(e, Some(Location::caller())));
+    pub fn push_err<E: Display + Send + Sync + 'static>(&mut self, mut e: E) {
+        if let Some(mut stack) = take_error_stack(&mut e) {
+            self.stack.append(&mut stack);
+            self.push();
+        } else {
+            self.stack.push(ErrorItem::new(e, Some(Location::caller())));
+        }
     }
 
     /// Adds error `e` with location to the stack
@@ -210,8 +243,12 @@ impl Error {
     }
 
     /// Pushes error `e` without location information to the stack
-    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(&mut self, e: E) {
-        self.stack.push(ErrorItem::new(e, None));
+    pub fn push_err_locationless<E: Display + Send + Sync + 'static>(&mut self, mut e: E) {
+        if let Some(mut stack) = take_error_stack(&mut e) {
+            self.stack.append(&mut stack);
+        } else {
+            self.stack.push(ErrorItem::new(e, None));
+        }
     }
 
     /// Adds error `e` without location information to the stack
@@ -288,9 +325,9 @@ impl<'a> IntoIterator for &'a mut Error {
 }
 
 impl Default for Error {
-    #[track_caller]
+    /// Uses `Error::empty()`
     fn default() -> Self {
-        Error::new()
+        Error::empty()
     }
 }
 

@@ -109,6 +109,21 @@ fn location_splitting() {
     );
 }
 
+/// A chained on [Error] keeps the order of its entries, with the location of
+/// the call that chained it on top
+#[test]
+fn chained_errors() {
+    let inner = Error::from_err("inner root").add_err("inner mid");
+    let e = Error::from_err("outer root").add_err(inner);
+    assert_eq!(
+        scrub(&format!("{e}")),
+        convert(
+            "\n  at tests/fmt.rs L:C\n    inner mid at tests/fmt.rs L:C\n    inner root at \
+             tests/fmt.rs L:C\n    outer root at tests/fmt.rs L:C"
+        )
+    );
+}
+
 /// The `Debug` impl is the same except for the terminal styling
 #[test]
 fn styling() {

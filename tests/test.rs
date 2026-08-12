@@ -1,7 +1,7 @@
 use core::mem;
 
 use stacked_errors::{
-    bail, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
+    bail, eyre, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
 };
 
 #[allow(unused)]
@@ -106,6 +106,60 @@ fn test_bail() {
     let tmp = f().unwrap_err();
     let x = tmp.iter().next().unwrap();
     assert_eq!(*x.downcast_ref::<String>().unwrap(), "test 5");
+}
+
+/// An [Error] that is passed to one of the `*_err*` functions has its stack
+/// chained on, rather than being nested inside of a single entry
+#[test]
+fn nested_errors() {
+    fn inner() -> Error {
+        Error::from_err("root").add_err("mid")
+    }
+
+    // the two entries of `inner`, plus the location of the `from_err` call
+    let e = Error::from_err(inner());
+    assert_eq!(e.iter().len(), 3);
+    let mut iter = e.iter();
+    assert_eq!(
+        *iter.next().unwrap().downcast_ref::<&str>().unwrap(),
+        "root"
+    );
+    assert_eq!(*iter.next().unwrap().downcast_ref::<&str>().unwrap(), "mid");
+    iter.next().unwrap().downcast_ref::<UnitError>().unwrap();
+
+    // the locationless variants do not push the extra location
+    let e = Error::from_err_locationless(inner());
+    assert_eq!(e.iter().len(), 2);
+    let e = Error::from_err("outer").add_err_locationless(inner());
+    assert_eq!(e.iter().len(), 3);
+
+    // chaining onto a foreign error type
+    let e = ron::from_str::<bool>("invalid")
+        .stack_err(inner())
+        .unwrap_err();
+    assert_eq!(e.iter().len(), 4);
+    e.iter()
+        .next()
+        .unwrap()
+        .downcast_ref::<ron::error::SpannedError>()
+        .unwrap();
+
+    // chaining when both sides are `Error`s
+    let e = Err::<(), Error>(Error::from_err("outer"))
+        .stack_err(inner())
+        .unwrap_err();
+    assert_eq!(e.iter().len(), 4);
+
+    // the special errors are found through a chain, which is the main thing that
+    // nesting used to silently break
+    assert!(Error::from_err(Error::timeout()).is_timeout());
+    assert!(Error::from_err(Error::probably_not_root_cause()).is_probably_not_root_cause());
+    assert!(Error::empty().add_err(Error::timeout()).is_timeout());
+    assert!(eyre!(Error::timeout()).is_timeout());
+    fn bailing() -> Result<()> {
+        bail!(Error::timeout())
+    }
+    assert!(bailing().unwrap_err().is_timeout());
 }
 
 #[test]

@@ -5,6 +5,10 @@ use crate::{Error, StackableErrorTrait};
 /// Conversion to and addition to the stack of a
 /// [stackable_error::Error](crate::Error).
 ///
+/// Note that in the implementations on the fundamental types and [Error]
+/// itself, the crate's [Error] is specially downcast when possible to avoid
+/// nesting them. See [Error].
+///
 /// See the main crate documentation and implementation for examples.
 pub trait StackableErr {
     type Output;
