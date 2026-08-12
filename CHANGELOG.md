@@ -8,6 +8,7 @@
 ### Changes
 - `StackedError` is now special cased to attempt to downcast whenever used as an argument on another `StackedError`, and the two chains are combined to prevent nesting
 - `Default` for `StackedError` uses `Error::empty()` (which does not capture a location and does not allocate) instead of `Error::new()` now
+- Exposed `StackedErrorItem`
 
 ## [0.7.2] - 2026-08-11
 ### Fixes

@@ -61,13 +61,12 @@ pub trait StackedErrorDowncast: StackableErrorTrait + Sized {
         E: Display + Send + Sync + 'static;
 }
 
-/// NOTE: this type is only public because `impl Trait` in associated types is
-/// unstable, only `StackedErrorDowncast` methods are intended to be used on
-/// this.
-// The specific type that `Error` uses in its stack. NOTE the `error_kind_size`
+/// The specific type that `Error` uses in its stack, should only be needed for
+/// low level manipulation and convenience.
+// NOTE the `error_kind_size`
 // should be updated whenever this is changed. pub type ErrorBox = Box<dyn
 // Display + Send + Sync + 'static>;
-pub struct ErrorItem {
+pub struct StackedErrorItem {
     b: SmallBox<dyn StackableErrorTrait, smallbox::space::S4>,
     l: Option<&'static Location<'static>>,
 }
@@ -75,10 +74,10 @@ pub struct ErrorItem {
 #[cfg(target_pointer_width = "64")]
 #[test]
 fn error_kind_size() {
-    assert_eq!(core::mem::size_of::<ErrorItem>(), 56);
+    assert_eq!(core::mem::size_of::<StackedErrorItem>(), 56);
 }
 
-impl ErrorItem {
+impl StackedErrorItem {
     pub fn new<E: Display + Send + Sync + 'static>(
         e: E,
         l: Option<&'static Location<'static>>,
@@ -87,7 +86,7 @@ impl ErrorItem {
     }
 }
 
-impl Debug for ErrorItem {
+impl Debug for StackedErrorItem {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_fmt(format_args!("{}", self.get_err()))?;
         if let Some(location) = self.get_location() {
@@ -97,13 +96,13 @@ impl Debug for ErrorItem {
     }
 }
 
-impl Display for ErrorItem {
+impl Display for StackedErrorItem {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         core::fmt::Debug::fmt(self, f)
     }
 }
 
-impl StackedErrorDowncast for ErrorItem {
+impl StackedErrorDowncast for StackedErrorItem {
     fn get_err(&self) -> &(impl Display + Send + Sync + 'static) {
         &self.b
     }
@@ -158,13 +157,15 @@ pub struct StackedError {
     /// possible on the stack (since we are commiting to some indirection at
     /// this point), and having the niche optimizations applied to things like
     /// `Result<(), Error>`.
-    stack: ThinVec<ErrorItem>,
+    stack: ThinVec<StackedErrorItem>,
 }
 
 pub type Error = StackedError;
 
 /// Sees if `e` is a `StackedError` and returns its stack without allocation
-fn take_error_stack<E: Display + Send + Sync + 'static>(e: &mut E) -> Option<ThinVec<ErrorItem>> {
+fn take_error_stack<E: Display + Send + Sync + 'static>(
+    e: &mut E,
+) -> Option<ThinVec<StackedErrorItem>> {
     let tmp: &mut dyn StackableErrorTrait = e;
     // does not allocate
     tmp._as_any_mut()
@@ -197,7 +198,7 @@ impl Error {
             res
         } else {
             Self {
-                stack: thin_vec![ErrorItem::new(e, Some(Location::caller()))],
+                stack: thin_vec![StackedErrorItem::new(e, Some(Location::caller()))],
             }
         }
     }
@@ -207,7 +208,7 @@ impl Error {
             Self { stack }
         } else {
             Self {
-                stack: thin_vec![ErrorItem::new(e, None)],
+                stack: thin_vec![StackedErrorItem::new(e, None)],
             }
         }
     }
@@ -231,7 +232,8 @@ impl Error {
             self.stack.append(&mut stack);
             self.push();
         } else {
-            self.stack.push(ErrorItem::new(e, Some(Location::caller())));
+            self.stack
+                .push(StackedErrorItem::new(e, Some(Location::caller())));
         }
     }
 
@@ -247,7 +249,7 @@ impl Error {
         if let Some(mut stack) = take_error_stack(&mut e) {
             self.stack.append(&mut stack);
         } else {
-            self.stack.push(ErrorItem::new(e, None));
+            self.stack.push(StackedErrorItem::new(e, None));
         }
     }
 
@@ -296,19 +298,19 @@ impl Error {
     }
 
     /// Iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter(&self) -> Iter<'_, ErrorItem> {
+    pub fn iter(&self) -> Iter<'_, StackedErrorItem> {
         self.stack.iter()
     }
 
     /// Mutable iteration over the [StackedErrorDowncast] items of `self`
-    pub fn iter_mut(&mut self) -> IterMut<'_, ErrorItem> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, StackedErrorItem> {
         self.stack.iter_mut()
     }
 }
 
 impl<'a> IntoIterator for &'a Error {
-    type IntoIter = Iter<'a, ErrorItem>;
-    type Item = &'a ErrorItem;
+    type IntoIter = Iter<'a, StackedErrorItem>;
+    type Item = &'a StackedErrorItem;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -316,8 +318,8 @@ impl<'a> IntoIterator for &'a Error {
 }
 
 impl<'a> IntoIterator for &'a mut Error {
-    type IntoIter = IterMut<'a, ErrorItem>;
-    type Item = &'a mut ErrorItem;
+    type IntoIter = IterMut<'a, StackedErrorItem>;
+    type Item = &'a mut StackedErrorItem;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()

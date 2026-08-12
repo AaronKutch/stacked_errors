@@ -114,7 +114,7 @@ macro_rules! ensure {
 }
 
 /// Asserts that two expressions are equal to each other (with [PartialEq]),
-/// returning a stackable error if they are equal. [Debug] is also required if
+/// returning a stackable error if they are not equal. [Debug] is also required if
 /// there is no custom message.
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and

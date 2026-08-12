@@ -171,7 +171,7 @@ mod macros;
 mod special;
 mod stackable_err;
 
-pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast};
+pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast, StackedErrorItem};
 pub use fmt::{shorten_location, DisplayStr};
 pub use special::*;
 pub use stackable_err::StackableErr;
