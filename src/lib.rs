@@ -172,7 +172,7 @@ mod special;
 mod stackable_err;
 
 pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast, StackedErrorItem};
-pub use fmt::{shorten_location, DisplayStr};
+pub use fmt::{shorten_location, styling_enabled, DisplayStr};
 pub use special::*;
 pub use stackable_err::StackableErr;
 

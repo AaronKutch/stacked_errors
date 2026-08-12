@@ -46,6 +46,22 @@ pub fn shorten_location(mut s: &str) -> &str {
     }
 }
 
+/// Whether the [Debug] impl of [Error] applies terminal styling. Returns false
+/// only if "supports-color" is enabled and the [supports_color] crate does not
+/// detect a terminal that wants styling. Note that the [Display] impl is never
+/// styled.
+#[must_use]
+pub fn styling_enabled() -> bool {
+    #[cfg(feature = "supports-color")]
+    {
+        supports_color::on_cached(supports_color::Stream::Stderr).is_some()
+    }
+    #[cfg(not(feature = "supports-color"))]
+    {
+        true
+    }
+}
+
 fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // in reverse order of a typical stack, I don't want to have to scroll up to see
     // the more specific errors
@@ -91,16 +107,22 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
             let dimmed = Style::new().dimmed();
             let bold = Style::new().bold();
 
-            let line_column = format_args!("{}:{}", l.line(), l.column());
+            // TODO the `format_args` are repeated rather than bound to a variable, binding
+            // one is only allowed when we bump MSRV
             if style {
                 write!(
                     f,
                     "{} {}",
                     shorten_location(l.file()).style(dimmed),
-                    line_column.style(bold)
+                    format_args!("{}:{}", l.line(), l.column()).style(bold)
                 )?;
             } else {
-                write!(f, "{} {}", shorten_location(l.file()), line_column)?;
+                write!(
+                    f,
+                    "{} {}",
+                    shorten_location(l.file()),
+                    format_args!("{}:{}", l.line(), l.column())
+                )?;
             }
         }
     }
@@ -108,14 +130,14 @@ fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::
 }
 
 impl Debug for Error {
-    /// Has terminal styling
+    /// Has terminal styling if [styling_enabled]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        common_format(self, true, f)
+        common_format(self, styling_enabled(), f)
     }
 }
 
 impl Display for Error {
-    /// Same as `Debug` but without terminal styling
+    /// Same as `Debug` but always without terminal styling
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         common_format(self, false, f)
     }

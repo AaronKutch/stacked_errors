@@ -129,7 +129,9 @@ fn chained_errors() {
 fn styling() {
     let e = Error::from_err("hello").add_err_locationless(UnitError {});
     let debug = format!("{e:?}");
-    assert!(debug.contains('\u{1b}'));
+    // the styling is only unconditional without the "supports-color" feature, with
+    // it the answer depends on whether stderr happens to be a terminal
+    assert_eq!(debug.contains('\u{1b}'), stacked_errors::styling_enabled());
     // removing the styling should recover the `Display` output
     let mut plain = String::new();
     let mut in_escape = false;

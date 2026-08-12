@@ -6,6 +6,7 @@
 - Fixed some bugs with formatting
 
 ### Changes
+- added "supports-color" feature which makes the `Debug` impl of `StackedError` smarter
 - `StackedError` is now special cased to attempt to downcast whenever used as an argument on another `StackedError`, and the two chains are combined to prevent nesting
 - `Default` for `StackedError` uses `Error::empty()` (which does not capture a location and does not allocate) instead of `Error::new()` now
 - Exposed `StackedErrorItem`
