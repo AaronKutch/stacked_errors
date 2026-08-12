@@ -65,18 +65,18 @@ macro_rules! anyhow {
 /// stackable error otherwise.
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
-/// attached location if the expression is false. An custom message can be
-/// attached that is used as a [StackableErr](crate::StackableErr) argument.
+/// attached location if the expression is false. A custom message can be
+/// attached, which takes all the same forms that [bail](crate::bail) does.
 ///
 /// ```
-/// use stacked_errors::{ensure, Result, StackableErr};
+/// use stacked_errors::{ensure, Result};
 ///
 /// fn ex(val0: bool, val1: bool) -> Result<()> {
 ///     ensure!(true);
 ///
 ///     ensure!(val0);
 ///
-///     ensure!(val1, format!("val1 was {}", val1));
+///     ensure!(val1, "val1 was {val1}");
 ///
 ///     Ok(())
 /// }
@@ -97,7 +97,7 @@ macro_rules! anyhow {
 /// ```
 #[macro_export]
 macro_rules! ensure {
-    ($expr:expr) => {
+    ($expr:expr $(,)?) => {
         if !$expr {
             return $crate::__private::Err($crate::Error::from_err($crate::__private::concat!(
                 "ensure(",
@@ -106,9 +106,9 @@ macro_rules! ensure {
             )));
         }
     };
-    ($expr:expr, $msg:expr) => {
+    ($expr:expr, $($arg:tt)+) => {
         if !$expr {
-            return $crate::__private::Err($crate::Error::from_err($msg));
+            $crate::bail!($($arg)+);
         }
     };
 }
@@ -119,8 +119,7 @@ macro_rules! ensure {
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are unequal. A custom message can be
-/// attached that is used as an [Error::from_err](crate::Error::from_err)
-/// argument.
+/// attached, which takes all the same forms that [bail](crate::bail) does.
 ///
 /// ```
 /// use stacked_errors::{ensure_eq, Result, StackableErr};
@@ -154,7 +153,7 @@ macro_rules! ensure {
 /// ```
 #[macro_export]
 macro_rules! ensure_eq {
-    ($lhs:expr, $rhs:expr) => {
+    ($lhs:expr, $rhs:expr $(,)?) => {
         // use the strategy that the core library does for `assert_eq`
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
@@ -171,11 +170,11 @@ macro_rules! ensure_eq {
             }
         }
     };
-    ($lhs:expr, $rhs:expr, $msg:expr) => {
+    ($lhs:expr, $rhs:expr, $($arg:tt)+) => {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs == *rhs) {
-                    return $crate::__private::Err($crate::Error::from_err($msg));
+                    $crate::bail!($($arg)+);
                 }
             }
         }
@@ -188,8 +187,7 @@ macro_rules! ensure_eq {
 ///
 /// Has `return Err(...)` with a [stacked_errors::Error](crate::Error) and
 /// attached location if the expressions are equal. A custom message can be
-/// attached that is used as an [Error::from_err](crate::Error::from_err)
-/// argument.
+/// attached, which takes all the same forms that [bail](crate::bail) does.
 ///
 /// ```
 /// use stacked_errors::{ensure_ne, Result, StackableErr};
@@ -223,7 +221,7 @@ macro_rules! ensure_eq {
 /// ```
 #[macro_export]
 macro_rules! ensure_ne {
-    ($lhs:expr, $rhs:expr) => {
+    ($lhs:expr, $rhs:expr $(,)?) => {
         // use the strategy that the core library does for `assert_ne`
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
@@ -240,11 +238,11 @@ macro_rules! ensure_ne {
             }
         }
     };
-    ($lhs:expr, $rhs:expr, $msg:expr) => {
+    ($lhs:expr, $rhs:expr, $($arg:tt)+) => {
         match (&$lhs, &$rhs) {
             (lhs, rhs) => {
                 if !(*lhs != *rhs) {
-                    return $crate::__private::Err($crate::Error::from_err($msg));
+                    $crate::bail!($($arg)+);
                 }
             }
         }
@@ -253,6 +251,9 @@ macro_rules! ensure_ne {
 
 /// Applies `get` and `stack_err_with(...)?` in a chain, this is compatible with
 /// many things.
+///
+/// The target can be any expression if it is parenthesized, e.x.
+/// `stacked_get!((self.value)["x"])`.
 ///
 /// ```
 /// use serde_json::Value;
@@ -282,6 +283,12 @@ macro_rules! ensure_ne {
 ///     ensure!(stacked_get!(value["State"]["Status"]) == "running");
 ///     ensure!(stacked_get!(value["State"]["Running"]) == true);
 ///
+///     struct Holder {
+///         value: Value,
+///     }
+///     let holder = Holder { value };
+///     ensure!(stacked_get!((holder.value)["State"]["Status"]) == "running");
+///
 ///     Ok(())
 /// }
 ///
@@ -299,7 +306,7 @@ macro_rules! ensure_ne {
 /// ```
 #[macro_export]
 macro_rules! stacked_get {
-    ($value:ident [$inx0:expr] $([$inx1:expr])*) => {{
+    ($value:tt [$inx0:expr] $([$inx1:expr])*) => {{
         // this is unrolled once to avoid a let binding
         // and allow multiple kinds of borrowing
         #[allow(unused)]
@@ -325,6 +332,9 @@ macro_rules! stacked_get {
 
 /// Applies `get_mut` and `stack_err_with(...)?` in a chain, this is compatible
 /// with many things.
+///
+/// The target can be any expression if it is parenthesized, e.x.
+/// `stacked_get_mut!((self.value)["x"])`.
 ///
 /// ```
 /// use serde_json::Value;
@@ -379,7 +389,7 @@ macro_rules! stacked_get {
 /// ```
 #[macro_export]
 macro_rules! stacked_get_mut {
-    ($value:ident [$inx0:expr] $([$inx1:expr])*) => {{
+    ($value:tt [$inx0:expr] $([$inx1:expr])*) => {{
         #[allow(unused)]
         let mut tmp = $crate::StackableErr::stack_err_with($value.get_mut($inx0),
             || $crate::__private::format!(
