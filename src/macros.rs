@@ -1,8 +1,16 @@
 /// Equivalent to `return Err(Error::from_err(format_args!(...)))` if a string
 /// literal, `return Err(Error::from_err(expr))` if a single expression, or
 /// `return Err(Error::from_err(format!(...)))` otherwise.
+///
+/// If called with no arguments, "explicit bail"` is used as the message,
+/// analogous to how `panic!()` uses "explicit panic". If only the location
+/// matters, use `bail!(UnitError {})` instead, which formats to just the
+/// location.
 #[macro_export]
 macro_rules! bail {
+    () => {
+        return $crate::__private::Err($crate::Error::from_err("explicit bail"))
+    };
     ($msg:literal $(,)?) => {
         return $crate::__private::Err($crate::__private::format_err($crate::__private::format_args!($msg)))
     };
@@ -17,6 +25,9 @@ macro_rules! bail {
 /// The `bail` macro but with `_locationless` variations
 #[macro_export]
 macro_rules! bail_locationless {
+    () => {
+        return $crate::__private::Err($crate::Error::from_err_locationless("explicit bail"))
+    };
     ($msg:literal $(,)?) => {
         return $crate::__private::Err($crate::__private::format_err_locationless(
             $crate::__private::format_args!($msg)

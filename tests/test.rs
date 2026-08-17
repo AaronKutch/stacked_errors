@@ -1,7 +1,8 @@
 use core::mem;
 
 use stacked_errors::{
-    bail, eyre, Error, Result, StackableErr, StackedError, StackedErrorDowncast, UnitError,
+    bail, bail_locationless, eyre, Error, Result, StackableErr, StackedError, StackedErrorDowncast,
+    UnitError,
 };
 
 #[allow(unused)]
@@ -106,6 +107,19 @@ fn test_bail() {
     let tmp = f().unwrap_err();
     let x = tmp.iter().next().unwrap();
     assert_eq!(*x.downcast_ref::<String>().unwrap(), "test 5");
+
+    // the no argument case gets a standard message and still has a location
+    let f = || -> Result<()> { bail!() };
+    let tmp = f().unwrap_err();
+    let x = tmp.iter().next().unwrap();
+    assert_eq!(*x.downcast_ref::<&str>().unwrap(), "explicit bail");
+    assert!(x.get_location().is_some());
+
+    let f = || -> Result<()> { bail_locationless!() };
+    let tmp = f().unwrap_err();
+    let x = tmp.iter().next().unwrap();
+    assert_eq!(*x.downcast_ref::<&str>().unwrap(), "explicit bail");
+    assert!(x.get_location().is_none());
 }
 
 /// An [Error] that is passed to one of the `*_err*` functions has its stack

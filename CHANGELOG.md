@@ -11,6 +11,7 @@
 - `Default` for `StackedError` uses `Error::empty()` (which does not capture a location and does not allocate) instead of `Error::new()` now
 - Exposed `StackedErrorItem`
 - Improved the macros to accept more expressions
+- `bail!` and `bail_locationless!` can be called with no arguments
 
 ## [0.7.2] - 2026-08-11
 ### Fixes

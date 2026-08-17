@@ -50,6 +50,9 @@ macro_rules! stringify {
 /// caught even though it expands to something valid
 #[test]
 fn shadowed_scope() {
+    fn bail_empty() -> StackedResult<()> {
+        bail!()
+    }
     fn bail_literal() -> StackedResult<()> {
         bail!("literal")
     }
@@ -83,6 +86,7 @@ fn shadowed_scope() {
         core::format_args!("{}", res.unwrap_err().iter().next().unwrap().get_err()).to_string()
     }
 
+    assert_eq!(root_msg(bail_empty()), "explicit bail");
     assert_eq!(root_msg(bail_literal()), "literal");
     assert_eq!(root_msg(bail_expr()), "expr");
     assert_eq!(root_msg(bail_fmt()), "fmt 5");
