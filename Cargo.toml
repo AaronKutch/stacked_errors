@@ -1,6 +1,6 @@
 [package]
 name = "stacked_errors"
-version = "0.7.2"
+version = "0.8.0"
 edition = "2021"
 # `flake.nix` and `ci.yml` read this automatically, but run `nix flake update`
 # and fix any hashes. The pinned toolchain in `pinned-toolchain.toml` is

@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.0] - TODO
+## [0.8.0] - 2026-08-26
 ### Fixes
 - Fixed macro hygiene with `Err`
 - Fixed some bugs with formatting
