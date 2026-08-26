@@ -23,9 +23,9 @@ jobs:
         # The `riscv32i` build is needed to actually detect if the crate is no_std.
         run: |
           cargo b --target=riscv32i-unknown-none-elf
-          cargo doc --no-deps
-          cargo test
-          cargo test --release
+          cargo doc --no-deps --all-features
+          cargo test --all-features
+          cargo test --release --all-features
 
   msrv_build:
     name: MSRV build
@@ -39,7 +39,7 @@ jobs:
           rustup default "$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)"
       - name: Check that the crate builds on its MSRV
         run: |
-          cargo build
+          cargo build --all-features
 
   rustfmt:
     name: Rustfmt

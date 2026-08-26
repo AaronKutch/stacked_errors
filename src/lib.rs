@@ -1,4 +1,4 @@
-//! A crate for high level error propogation with software controlled backtraces
+//! A crate for high level error propagation with software controlled backtraces
 //! that are entirely independent of the `RUST_BACKTRACE` system.
 //!
 //! In Rust development, major crates will often have their own error enums that
@@ -95,7 +95,7 @@
 //!
 //! fn inner(s: &str) -> Result<u16> {
 //!     // Chainable with other combinators. Use `stack_err` with a message for
-//!     // propogating up the stack when the error is something that should
+//!     // propagating up the stack when the error is something that should
 //!     // have some mid layer information attached for it for quick diagnosis
 //!     // by the user. Otherwise use just `stack` which will also do error
 //!     // conversion if necessary, avoiding needing to wrangle with `map_err`.
@@ -171,8 +171,8 @@ mod macros;
 mod special;
 mod stackable_err;
 
-pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast};
-pub use fmt::{shorten_location, DisplayStr};
+pub use error::{Error, StackableErrorTrait, StackedError, StackedErrorDowncast, StackedErrorItem};
+pub use fmt::{shorten_location, styling_enabled, DisplayStr};
 pub use special::*;
 pub use stackable_err::StackableErr;
 
@@ -183,7 +183,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[doc(hidden)]
 pub mod __private {
     pub use alloc::format;
-    pub use core::{concat, format_args, stringify};
+    pub use core::{concat, format_args, result::Result::Err, stringify};
 
     #[track_caller]
     pub fn format_err(args: core::fmt::Arguments<'_>) -> crate::Error {

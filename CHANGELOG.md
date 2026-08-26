@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0] - 2026-08-26
+### Fixes
+- Fixed macro hygiene with `Err`
+- Fixed some bugs with formatting
+
+### Changes
+- added "supports-color" feature which makes the `Debug` impl of `StackedError` smarter
+- `StackedError` is now special cased to attempt to downcast whenever used as an argument on another `StackedError`, and the two chains are combined to prevent nesting
+- `Default` for `StackedError` uses `Error::empty()` (which does not capture a location and does not allocate) instead of `Error::new()` now
+- Exposed `StackedErrorItem`
+- Improved the macros to accept more expressions
+- `bail!` and `bail_locationless!` can be called with no arguments
+
 ## [0.7.2] - 2026-08-11
 ### Fixes
 - Fixed future breakage from the macros on nightly (https://github.com/rust-lang/rust/issues/79813)

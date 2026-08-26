@@ -1,4 +1,4 @@
-use stacked_errors::{ensure_eq, ensure_ne, Result, UnitError};
+use stacked_errors::{ensure, ensure_eq, ensure_ne, Result, UnitError};
 
 // there are also tests in the doc tests
 #[test]
@@ -118,6 +118,81 @@ fn ensure_test() {
     hello at tests/ensure.rs 110:9"#
         )
     );
+}
+
+/// The message argument of the `ensure*` macros accepts everything that `bail`
+/// does, and all of them accept a trailing comma
+#[test]
+fn ensure_message_forms() {
+    fn err(res: Result<()>) -> String {
+        format!("{}", res.unwrap_err())
+    }
+
+    let x = 5u64;
+
+    // string literals interpolate like they do in `bail`
+    assert!(err((|| {
+        ensure!(false, "bad {x}");
+        Ok(())
+    })())
+    .contains("bad 5"));
+
+    // a format string with arguments
+    assert!(err((|| {
+        ensure!(false, "bad {}", x);
+        Ok(())
+    })())
+    .contains("bad 5"));
+    assert!(err((|| {
+        ensure_eq!(1, 2, "bad {}", x);
+        Ok(())
+    })())
+    .contains("bad 5"));
+    assert!(err((|| {
+        ensure_ne!(2, 2, "bad {}", x);
+        Ok(())
+    })())
+    .contains("bad 5"));
+
+    // a single expression
+    let owned = String::from("owned");
+    assert!(err((|| {
+        ensure!(false, owned);
+        Ok(())
+    })())
+    .contains("owned"));
+
+    // trailing commas, with and without a message
+    assert!(err((|| {
+        ensure!(false,);
+        Ok(())
+    })())
+    .contains("assertion failed"));
+    assert!(err((|| {
+        ensure_eq!(1, 2,);
+        Ok(())
+    })())
+    .contains("equality assertion failed"));
+    assert!(err((|| {
+        ensure_ne!(2, 2,);
+        Ok(())
+    })())
+    .contains("inequality assertion failed"));
+    assert!(err((|| {
+        ensure!(false, "lit",);
+        Ok(())
+    })())
+    .contains("lit"));
+    assert!(err((|| {
+        ensure_eq!(1, 2, "lit",);
+        Ok(())
+    })())
+    .contains("lit"));
+    assert!(err((|| {
+        ensure_ne!(2, 2, "lit",);
+        Ok(())
+    })())
+    .contains("lit"));
 }
 
 pub fn convert(s: &str) -> String {

@@ -1,6 +1,6 @@
 # Stacked Errors
 
- A crate for high level error propogation with software controlled backtraces
+ A crate for high level error propagation with software controlled backtraces
  that are entirely independent of the `RUST_BACKTRACE` system.
 
  In Rust development, major crates will often have their own error enums that
@@ -97,7 +97,7 @@
 
  fn inner(s: &str) -> Result<u16> {
      // Chainable with other combinators. Use `stack_err` with a message for
-     // propogating up the stack when the error is something that should
+     // propagating up the stack when the error is something that should
      // have some mid layer information attached for it for quick diagnosis
      // by the user. Otherwise use just `stack` which will also do error
      // conversion if necessary, avoiding needing to wrangle with `map_err`.

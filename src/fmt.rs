@@ -46,84 +46,98 @@ pub fn shorten_location(mut s: &str) -> &str {
     }
 }
 
+/// Whether the [Debug] impl of [Error] applies terminal styling. Returns false
+/// only if "supports-color" is enabled and the [supports_color] crate does not
+/// detect a terminal that wants styling. Note that the [Display] impl is never
+/// styled.
+#[must_use]
+pub fn styling_enabled() -> bool {
+    #[cfg(feature = "supports-color")]
+    {
+        supports_color::on_cached(supports_color::Stream::Stderr).is_some()
+    }
+    #[cfg(not(feature = "supports-color"))]
+    {
+        true
+    }
+}
+
 fn common_format(this: &Error, style: bool, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // in reverse order of a typical stack, I don't want to have to scroll up to see
     // the more specific errors
-    let mut s = String::new();
-    let mut tmp = String::new();
-    let mut first = true;
-    for (i, e) in this.iter().enumerate().rev() {
-        s.clear();
-        if first {
-            // this we do to better interact with `Error: ` etc since this is going to be a
-            // list anyways, some other libraries do this as well
-            writeln!(s)?;
-        }
+
+    // the message of the current entry needs to be rendered ahead of being written,
+    // both to scan it for preexisting styling and to know its length
+    let mut msg = String::new();
+    for e in this.iter().rev() {
         let is_unit_err = e.downcast_ref::<UnitError>().is_some();
-        let is_last = i == 0;
-        if is_unit_err {
-            if e.get_location().is_none() {
-                continue;
-            }
-        } else {
-            // TODO can we get rid of the allocated temporaries?
-            tmp.clear();
-            write!(tmp, "{}", e.get_err())?;
+        let location = e.get_location();
+        if is_unit_err && location.is_none() {
+            continue;
+        }
+        // every entry is prefixed rather than suffixed by the newline, both because the
+        // leading newline interacts better with `Error: ` etc since this is going to be
+        // a list anyways (some other libraries do this as well), and because entries
+        // can be skipped which would otherwise make a trailing newline possible
+        writeln!(f)?;
+        msg.clear();
+        if !is_unit_err {
+            write!(msg, "{}", e.get_err())?;
             // if there are vt100 styling characters already in the output, do not apply
             // styling
-            if (!style) || tmp.contains('\u{1b}') {
-                write!(s, "    {}", tmp)?;
+            if (!style) || msg.contains('\u{1b}') {
+                write!(f, "    {}", msg)?;
             } else {
                 let color = Style::new().color(CssColors::IndianRed);
-                write!(s, "    {}", tmp.style(color))?;
+                write!(f, "    {}", msg.style(color))?;
             }
         }
-        if let Some(l) = e.get_location() {
-            // if the current length plus the location length (the +8 is from the space,
-            // colon, and 4 digits for line and 2 for column) is more than 80 then split up
-            if (tmp.len() + l.file().len() + 8) > 80 {
-                // split up
-                write!(s, "\n  at ")?;
-            } else if !is_unit_err {
-                write!(s, " at ")?;
+        if let Some(l) = location {
+            if is_unit_err {
+                // there is no message on this line to split away from
+                write!(f, "  at ")?;
+            } else if (msg.len() + l.file().len() + 8) > 80 {
+                // if the message length plus the location length (the +8 is from the space,
+                // colon, and 4 digits for line and 2 for column) is more than 80 then split
+                // up
+                write!(f, "\n  at ")?;
             } else {
-                write!(s, "  at ")?;
+                write!(f, " at ")?;
             }
             let dimmed = Style::new().dimmed();
             let bold = Style::new().bold();
 
-            tmp.clear();
-            write!(tmp, "{}:{}", l.line(), l.column())?;
-
+            // TODO the `format_args` are repeated rather than bound to a variable, binding
+            // one is only allowed when we bump MSRV
             if style {
                 write!(
-                    s,
+                    f,
                     "{} {}",
                     shorten_location(l.file()).style(dimmed),
-                    tmp.style(bold)
+                    format_args!("{}:{}", l.line(), l.column()).style(bold)
                 )?;
             } else {
-                write!(s, "{} {}", shorten_location(l.file()), tmp)?;
+                write!(
+                    f,
+                    "{} {}",
+                    shorten_location(l.file()),
+                    format_args!("{}:{}", l.line(), l.column())
+                )?;
             }
         }
-        if !is_last {
-            writeln!(s)?;
-        }
-        f.write_fmt(format_args!("{s}"))?;
-        first = false;
     }
     Ok(())
 }
 
 impl Debug for Error {
-    /// Has terminal styling
+    /// Has terminal styling if [styling_enabled]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        common_format(self, true, f)
+        common_format(self, styling_enabled(), f)
     }
 }
 
 impl Display for Error {
-    /// Same as `Debug` but without terminal styling
+    /// Same as `Debug` but always without terminal styling
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         common_format(self, false, f)
     }

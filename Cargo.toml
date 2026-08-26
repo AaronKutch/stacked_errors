@@ -1,6 +1,6 @@
 [package]
 name = "stacked_errors"
-version = "0.7.2"
+version = "0.8.0"
 edition = "2021"
 # `flake.nix` and `ci.yml` read this automatically, but run `nix flake update`
 # and fix any hashes. The pinned toolchain in `pinned-toolchain.toml` is
@@ -17,10 +17,13 @@ description = "high level error propagation with software controlled backtraces"
 
 [features]
 default = []
+# Enables the `supports-color` crate, which detects if terminal styling is wanted or not. Only if this feature is enabled and if `supports-color` says the environment does not want styling, the `Debug` impl of `StackedError` does not do terminal styling
+supports-color = ["dep:supports-color"]
 
 [dependencies]
 owo-colors = { version = "4.1", default-features = false }
 smallbox = { version = "0.8", default-features = false }
+supports-color = { version = "3", optional = true }
 thin-vec = { version = "0.2", default-features = false }
 thiserror = { version = "2", default-features = false }
 

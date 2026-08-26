@@ -5,6 +5,10 @@ use crate::{Error, StackableErrorTrait};
 /// Conversion to and addition to the stack of a
 /// [stackable_error::Error](crate::Error).
 ///
+/// Note that in the implementations on the fundamental types and [Error]
+/// itself, the crate's [Error] is specially downcast when possible to avoid
+/// nesting them. See [Error].
+///
 /// See the main crate documentation and implementation for examples.
 pub trait StackableErr {
     type Output;
@@ -111,7 +115,8 @@ fn stack<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push();
-        mem::replace(tmp, Error::empty())
+        // this replaces with `Error::empty()` without incurring extra allocations
+        mem::take(tmp)
     } else {
         Error::from_err(err)
     }
@@ -120,7 +125,7 @@ fn stack<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
 fn stack_locationless<E: Display + Send + Sync + 'static>(mut err: E) -> Error {
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
-        mem::replace(tmp, Error::empty())
+        mem::take(tmp)
     } else {
         Error::from_err_locationless(err)
     }
@@ -134,14 +139,13 @@ fn stack_err<E: Display + Send + Sync + 'static, E1: Display + Send + Sync + 'st
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push_err(e);
-        mem::replace(tmp, Error::empty())
+        mem::take(tmp)
     } else {
         // the location should be attached to the later part
         Error::from_err_locationless(err).add_err(e)
     }
 }
 
-#[track_caller]
 fn stack_err_locationless<
     E: Display + Send + Sync + 'static,
     E1: Display + Send + Sync + 'static,
@@ -152,7 +156,7 @@ fn stack_err_locationless<
     let tmp: &mut dyn StackableErrorTrait = &mut err;
     if let Some(tmp) = tmp._as_any_mut().downcast_mut::<Error>() {
         tmp.push_err_locationless(e);
-        mem::replace(tmp, Error::empty())
+        mem::take(tmp)
     } else {
         Error::from_err_locationless(err).add_err_locationless(e)
     }

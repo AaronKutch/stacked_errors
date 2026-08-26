@@ -32,8 +32,8 @@ test *ARGS:
 test_all:
   {{cargo}} sort -cw
   {{cargo}} doc --no-deps --all-features
-  {{cargo}} nextest run
-  {{cargo}} nextest run --release
+  {{cargo}} nextest run --all-features
+  {{cargo}} nextest run --release --all-features
   {{cargo}} t --doc --all-features
   {{cargo}} b --target=riscv32i-unknown-none-elf
   {{cargo}} machete
